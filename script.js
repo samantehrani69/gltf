@@ -417,9 +417,10 @@ function setupLightingControls() {
 
 // تنظیم گوش‌دهنده برای نمایش یا مخفی کردن پنل نور در زمان‌های خاص
 window.addEventListener('load', function() {
-    // اطمینان از وجود المان‌های ضروری
     console.log('صفحه کاملاً بارگذاری شد');
     
+    // حذف دستور مربوط به file-input
+    /* 
     const fileInput = document.getElementById('file-input');
     if (fileInput) {
         fileInput.addEventListener('change', function(event) {
@@ -429,6 +430,7 @@ window.addEventListener('load', function() {
             }
         });
     }
+    */
     
     // نمایش پنل نور با کلیک روی دکمه
     const toggleButton = document.getElementById('toggle-lighting-panel');
@@ -452,5 +454,5 @@ window.addEventListener('offline', function() {
 initScene();
 animate();
 
-// پیام خوشامدگویی در کنسول
-console.log('نمایشگر مدل‌های GLTF/GLB آماده است. لطفاً یک فایل انتخاب کنید.');
+// جایگزینی پیام خوشامدگویی
+console.log('نمایشگر مدل‌های GLTF/GLB آماده است. از منوی کناری یک مدل انتخاب کنید.');

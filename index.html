@@ -58,18 +58,17 @@
             position: absolute;
             bottom: 20px;
             left: 50%;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 10;
-        }
-        #error-info {
+            transform: translateX(-50%); /* اضافه کردن transform برای مرکز قرار دادن */
             color: #d32f2f;
             text-align: center;
-            margin-top: 10px;
-            font-weight: bold;
-            background-color: rgba(255,235,238,0.8);
-            padding: 8px;
+            background-color: rgba(255,235,238,0.9);
+            padding: 10px 20px;
             border-radius: 4px;
+            font-weight: bold;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
             display: none;
+            max-width: 80%;
         }
         .sidebar {
             position: absolute;
@@ -316,12 +315,64 @@
     </div>
 
     <!-- کتابخانه‌های Three.js -->
-    <script src="https://cdn.jsdelivr.net/npm/three/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/GLTFLoader.js"></script>
+    
+    <!-- اسکریپت های کمکی -->
+    <script>
+        // تنظیم گوش‌دهنده برای خطاهای احتمالی
+        window.addEventListener('error', function(e) {
+            console.error('خطای جاوااسکریپت:', e.message, 'در', e.filename, 'خط', e.lineno);
+            showErrorMessage('خطا در اجرای برنامه: ' + e.message);
+        });
+        
+        // نمایش پیام خطا 
+        function showErrorMessage(message) {
+            const errorInfo = document.getElementById('error-info');
+            if (errorInfo) {
+                errorInfo.textContent = message;
+                errorInfo.style.display = 'block';
+                setTimeout(() => {
+                    errorInfo.style.display = 'none';
+                }, 7000);
+            }
+        }
+        
+        // برای بررسی کتابخانه‌ها قبل از بارگذاری اسکریپت اصلی
+        function checkLibraries() {
+            if (typeof THREE === 'undefined') {
+                showErrorMessage('کتابخانه THREE.js بارگذاری نشده است.');
+                return false;
+            }
+            
+            if (typeof THREE.OrbitControls === 'undefined') {
+                showErrorMessage('کتابخانه OrbitControls بارگذاری نشده است.');
+                return false;
+            }
+            
+            if (typeof THREE.GLTFLoader === 'undefined') {
+                showErrorMessage('کتابخانه GLTFLoader بارگذاری نشده است.');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // بررسی کتابخانه‌ها قبل از ادامه
+        window.addEventListener('DOMContentLoaded', function() {
+            if (checkLibraries()) {
+                console.log('همه کتابخانه‌ها با موفقیت بارگذاری شدند.');
+            } else {
+                console.error('خطا در بارگذاری کتابخانه‌ها');
+            }
+        });
+    </script>
     
     <!-- اسکریپت اصلی -->
     <script src="script.js"></script>
+    
+    <!-- اسکریپت بارگذاری لیست مدل‌ها -->
     <script>
         // نام کاربری و نام مخزن
         const GITHUB_USER = 'samantehrani69';
