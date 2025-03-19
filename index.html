@@ -643,6 +643,12 @@
         console.log("همه کتابخانه‌ها با موفقیت بارگذاری شدند. اسکریپت اصلی را بارگذاری می‌کنیم...");
         const script = document.createElement('script');
         script.src = 'script.js';
+        script.onload = function() {
+            // فراخوانی loadModelsList پس از بارگذاری اسکریپت
+            if (typeof loadModelsList === 'function') {
+                setTimeout(loadModelsList, 100);
+            }
+        };
         document.body.appendChild(script);
     } else {
         document.getElementById('error-info').textContent = "خطا در بارگذاری کتابخانه‌های مورد نیاز";
