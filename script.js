@@ -481,7 +481,14 @@ function loadModelsList() {
         .then(models => {
             const container = document.getElementById('models-list');
             if (!container) return;
-            container.innerHTML = '';
+
+            container.innerHTML = ''; 
+            if (!models || models.length === 0) {
+                console.warn('فهرست مدل‌ها خالی یا تعریف نشده است.');
+                return;
+            }
+
+            console.log('مدل‌ها بارگذاری شدند:', models);
             models.forEach(modelItem => {
                 const link = document.createElement('a');
                 link.className = 'model-link';
@@ -494,5 +501,7 @@ function loadModelsList() {
         })
         .catch(err => {
             console.error('خطا در بارگذاری لیست مدل‌ها:', err);
+            const container = document.getElementById('models-list');
+            if (container) container.innerHTML = '';
         });
 }
