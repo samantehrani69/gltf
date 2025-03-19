@@ -426,11 +426,16 @@ window.addEventListener('load', function() {
     
     // نمایش پنل نور با کلیک روی دکمه
     const toggleButton = document.getElementById('toggle-lighting-panel');
-    if (toggleButton) {
-        console.log('دکمه toggle-lighting-panel یافت شد');
-    } else {
-        console.error('دکمه toggle-lighting-panel یافت نشد');
+    const lightingPanel = document.getElementById('lighting-panel');
+    if (toggleButton && lightingPanel) {
+        toggleButton.addEventListener('click', function() {
+            lightingPanel.style.display =
+                (lightingPanel.style.display === 'none') ? 'block' : 'none';
+        });
     }
+
+    // فراخوانی برای نمایش لیست مدل‌ها
+    loadModelsList();
 });
 
 // بررسی وضعیت آنلاین
@@ -458,3 +463,26 @@ function animate() {
 
 // پیام خوشامدگویی در کنسول
 console.log('نمایشگر مدل‌های GLTF/GLB آماده است. از منوی کناری یک مدل انتخاب کنید.');
+
+// تابع جدید برای بارگذاری لیست مدل‌ها
+function loadModelsList() {
+    fetch('models/models.json')
+        .then(response => response.json())
+        .then(models => {
+            const container = document.getElementById('models-list');
+            if (!container) return;
+            container.innerHTML = '';
+            models.forEach(modelItem => {
+                const link = document.createElement('a');
+                link.className = 'model-link';
+                link.textContent = modelItem.name;
+                link.addEventListener('click', () => {
+                    loadModelURL('models/' + modelItem.file);
+                });
+                container.appendChild(link);
+            });
+        })
+        .catch(err => {
+            console.error('خطا در بارگذاری لیست مدل‌ها:', err);
+        });
+}
