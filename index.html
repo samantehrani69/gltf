@@ -638,20 +638,16 @@
         return true;
     }
 
-    // با تأخیر 500 میلی‌ثانیه چک می‌کنیم که کتابخانه‌ها بارگذاری شده‌اند
-    setTimeout(function() {
-        if (checkLibraries()) {
-            console.log("همه کتابخانه‌ها با موفقیت بارگذاری شدند. اسکریپت اصلی را بارگذاری می‌کنیم...");
-            
-            // بارگذاری اسکریپت اصلی
-            const script = document.createElement('script');
-            script.src = 'script.js';
-            document.body.appendChild(script);
-        } else {
-            document.getElementById('error-info').textContent = "خطا در بارگذاری کتابخانه‌های مورد نیاز";
-            document.getElementById('error-info').style.display = 'block';
-        }
-    }, 500);
+    // فراخوانی مستقیم تابع بررسی و بارگذاری اسکریپت اصلی در صورت موفقیت
+    if (checkLibraries()) {
+        console.log("همه کتابخانه‌ها با موفقیت بارگذاری شدند. اسکریپت اصلی را بارگذاری می‌کنیم...");
+        const script = document.createElement('script');
+        script.src = 'script.js';
+        document.body.appendChild(script);
+    } else {
+        document.getElementById('error-info').textContent = "خطا در بارگذاری کتابخانه‌های مورد نیاز";
+        document.getElementById('error-info').style.display = 'block';
+    }
     </script>
 </body>
 </html>
