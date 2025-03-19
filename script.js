@@ -468,7 +468,7 @@ function animate() {
 // پیام خوشامدگویی در کنسول
 console.log('نمایشگر مدل‌های GLTF/GLB آماده است. از منوی کناری یک مدل انتخاب کنید.');
 
-// تابع جدید برای بارگذاری لیست مدل‌ها - بازنویسی شده برای بارگذاری مستقیم از پوشه
+// تابع جدید برای بارگذاری لیست مدل‌ها - بازنویسی شده برای استفاده مستقیم از فایل‌های موجود
 function loadModelsList() {
     const modelsList = document.getElementById('models-list');
     if (!modelsList) return;
@@ -476,87 +476,43 @@ function loadModelsList() {
     // نمایش پیام بارگذاری
     modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">در حال بارگذاری مدل‌ها...</div>';
     
-    // استفاده از API گیت‌هاب برای دریافت فایل‌های موجود در پوشه models
-    fetch('https://api.github.com/repos/samantehrani69/gltf/contents/models')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`خطا در دریافت لیست فایل‌ها: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(files => {
-            // فیلتر کردن فقط فایل‌های GLB و GLTF
-            const modelFiles = files.filter(file => 
-                file.name.toLowerCase().endsWith('.glb') || 
-                file.name.toLowerCase().endsWith('.gltf')
-            );
-            
-            // بررسی وجود فایل مدل
-            if (modelFiles.length === 0) {
-                modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">هیچ مدلی یافت نشد</div>';
-                return;
-            }
-            
-            // پاک کردن لیست قبلی
-            modelsList.innerHTML = '';
-            
-            // اضافه کردن هر فایل به لیست
-            modelFiles.forEach(file => {
-                const link = document.createElement('a');
-                link.className = 'model-link';
-                link.textContent به file.name;
-                link.addEventListener('click', () => {
-                    // انتخاب این مدل در لیست
-                    document.querySelectorAll('.model-link').forEach(item => {
-                        item.style.fontWeight = 'normal';
-                    });
-                    link.style.fontWeight = 'bold';
-                    
-                    // بارگذاری مدل با استفاده از آدرس مستقیم
-                    loadModelURL(file.download_url);
-                });
-                modelsList.appendChild(link);
+    // لیست مدل‌ها به صورت مستقیم - بدون استفاده از models.json
+    const models = [
+        { name: 'مکعب', file: 'cube.glb', description: 'یک مکعب سه بعدی ساده' },
+        { name: 'کره', file: 'sphere.glb', description: 'یک کره سه بعدی ساده' },
+        { name: 'استوانه', file: 'cylinder.glb', description: 'یک استوانه سه بعدی ساده' },
+        { name: 'صفحه', file: 'plane.glb', description: 'یک صفحه سه بعدی ساده' },
+        { name: 'مخروط', file: 'cone.glb', description: 'یک مخروط سه بعدی ساده' }
+    ];
+    
+    // پاک کردن لیست قبلی
+    modelsList.innerHTML = '';
+    
+    // بررسی وجود مدل در لیست
+    if (models.length === 0) {
+        modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">هیچ مدلی یافت نشد</div>';
+        return;
+    }
+    
+    // اضافه کردن هر مدل به لیست
+    models.forEach(model => {
+        const link = document.createElement('a');
+        link.className = 'model-link';
+        link.textContent = model.name;
+        link.title = model.description || model.name;
+        link.addEventListener('click', () => {
+            // انتخاب این مدل در لیست
+            document.querySelectorAll('.model-link').forEach(item => {
+                item.style.fontWeight = 'normal';
             });
+            link.style.fontWeight = 'bold';
             
-            console.log(`${modelFiles.length} مدل یافت شد و در لیست نمایش داده شد.`);
-        })
-        .catch(error => {
-            console.error('خطا در بارگذاری لیست مدل‌ها:', error);
-            modelsList.innerHTML = `
-                <div style="text-align: center; padding: 10px; color: #d32f2f;">
-                    خطا در بارگذاری لیست مدل‌ها<br>
-                    <small>${error.message}</small>
-                </div>
-            `;
-            
-            // تلاش برای بارگذاری محلی فایل‌ها در صورت خطا در روش گیت‌هاب
-            try {
-                // نمایش فایل‌های محلی اگر در محیط آفلاین هستیم
-                const localModelFiles = [
-                    { name: 'مکعب', path: 'models/cube.glb' },
-                    { name: 'کره', path: 'models/sphere.glb' },
-                    { name: 'استوانه', path: 'models/cylinder.glb' }
-                ];
-                
-                if (localModelFiles.length > 0) {
-                    modelsList.innerHTML = '';
-                    localModelFiles.forEach(model => {
-                        const link = document.createElement('a');
-                        link.className = 'model-link';
-                        link.textContent به model.name;
-                        link.addEventListener('click', () => {
-                            document.querySelectorAll('.model-link').forEach(item => {
-                                item.style.fontWeight = 'normal';
-                            });
-                            link.style.fontWeight = 'bold';
-                            loadModelURL(model.path);
-                        });
-                        modelsList.appendChild(link);
-                    });
-                    console.log('فایل‌های محلی با موفقیت بارگذاری شد.');
-                }
-            } catch (localError) {
-                console.error('خطا در بارگذاری فایل‌های محلی:', localError);
-            }
+            // بارگذاری مدل با استفاده از مسیر نسبی
+            loadModelURL(`models/${model.file}`);
         });
+        modelsList.appendChild(link);
+    });
+    
+    console.log(`${models.length} مدل به صورت مستقیم بارگذاری شد.`);
 }
+```
