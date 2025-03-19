@@ -211,39 +211,24 @@
             loadModelsFromFolder();
         }
 
-        // تابع جدید برای اسکن پوشه models با روش‌های مختلف
+        // تابع بهبود یافته برای اسکن پوشه models
         function loadModelsFromFolder() {
             // پاک کردن لیست قبلی
-            modelList.innerHTML = '<div style="text-align: center; color: #666; margin: 10px 0;">در حال اسکن پوشه models...</div>';
+            modelList.innerHTML = '<div style="text-align: center; color: #666; margin: 10px 0;">در حال بررسی فایل‌ها...</div>';
             
             console.log("شروع جستجوی فایل‌های مدل در پوشه models...");
             
-            // روش اول: استفاده از فایل‌های مدل پیش‌فرض از مخزن Three.js
-            // این روش همیشه کار می‌کند و حداقل چند مدل نمایش می‌دهد
-            const defaultModels = [
-                { name: 'مکعب (نمونه)', url: 'https://threejs.org/examples/models/gltf/cube/cube.gltf' },
-                { name: 'طبیعت (نمونه)', url: 'https://threejs.org/examples/models/gltf/LittlestTokyo.glb' }
-            ];
-            
-            // روش دوم: جستجوی مستقیم فایل‌های رایج در پوشه models
-            const localFileNames = [
-                'cube.glb', 'sphere.glb', 'cylinder.glb', 'cone.glb', 'torus.glb',
-                'model.glb', 'scene.glb', 'asset.glb', 'example.glb', 'sample.glb',
-                // اضافه کردن نام‌های فایل‌های خاص کاربر
-                'box.glb', 'car.glb', 'chair.glb', 'table.glb'
-            ];
-            
-            // نتایج نهایی
-            const foundFiles = [];
-            
-            // ایجاد فرم پنهان برای آپلود فایل
+            // اضافه کردن دکمه آپلود مستقیم در ابتدای لیست
             const uploadForm = document.createElement('div');
             uploadForm.innerHTML = `
                 <div style="margin: 15px 0; text-align: center;">
                     <input type="file" id="direct-file-input" accept=".glb,.gltf" style="display: none;">
                     <button id="direct-upload-btn" style="padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%;">
-                        آپلود مستقیم فایل 3D
+                        آپلود فایل سه‌بعدی
                     </button>
+                    <div style="margin-top: 8px; font-size: 12px; color: #555; text-align: center;">
+                        این روش در تمام مرورگرها کار می‌کند
+                    </div>
                 </div>
             `;
             modelList.appendChild(uploadForm);
@@ -262,134 +247,102 @@
                     
                     // اضافه کردن فایل انتخاب شده به لیست
                     const selectedFileInfo = document.createElement('div');
-                    selectedFileInfo.style.margin = '5px 0';
-                    selectedFileInfo.style.padding = '5px';
+                    selectedFileInfo.style.margin = '10px 0';
+                    selectedFileInfo.style.padding = '8px';
                     selectedFileInfo.style.backgroundColor = '#e8f5e9';
                     selectedFileInfo.style.borderRadius = '4px';
+                    selectedFileInfo.style.fontSize = '13px';
                     selectedFileInfo.innerHTML = `<strong>فایل بارگذاری شده:</strong> ${file.name}`;
                     
-                    // قرار دادن در بالای لیست فایل‌ها
-                    const firstModelLink = modelList.querySelector('.model-link');
-                    if (firstModelLink) {
-                        modelList.insertBefore(selectedFileInfo, firstModelLink);
+                    // جایگزینی یا اضافه کردن به لیست
+                    const existingFileInfo = modelList.querySelector('[data-loaded-file]');
+                    if (existingFileInfo) {
+                        existingFileInfo.innerHTML = selectedFileInfo.innerHTML;
                     } else {
-                        modelList.appendChild(selectedFileInfo);
+                        selectedFileInfo.setAttribute('data-loaded-file', 'true');
+                        const afterUploadBtn = document.getElementById('direct-upload-btn').parentNode.parentNode;
+                        afterUploadBtn.after(selectedFileInfo);
                     }
                 }
             });
             
-            // روش جدید: درخواست‌های مستقیم برای هر فایل با نمایش جزئیات خطا
-            const checkPromises = localFileNames.map(filename => {
-                const url = `models/${filename}`;
-                console.log(`بررسی فایل: ${url}`);
-                
-                return fetch(url)
-                    .then(response => {
-                        if (response.ok) {
-                            console.log(`فایل یافت شد: ${filename}`);
-                            foundFiles.push({
-                                name: filename,
-                                url: url
-                            });
-                            return true;
-                        } else {
-                            console.log(`فایل یافت نشد (${response.status}): ${filename}`);
-                            return false;
-                        }
-                    })
-                    .catch(error => {
-                        console.log(`خطا در بررسی فایل ${filename}: ${error.message}`);
-                        return false;
-                    });
+            // مدل‌های پیش‌فرض آنلاین
+            const defaultModels = [
+                { name: 'مکعب (نمونه آنلاین)', url: 'https://threejs.org/examples/models/gltf/cube/cube.gltf' },
+                { name: 'روبات (نمونه آنلاین)', url: 'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb' }
+            ];
+
+            // نتایج نهایی
+            const foundFiles = [];
+            
+            // راهنمای نحوه اضافه کردن فایل به پوشه
+            const helpSection = document.createElement('div');
+            helpSection.innerHTML = `
+                <div style="margin: 20px 0 10px; font-weight: bold; color: #555; border-top: 1px solid #ddd; padding-top: 10px;">
+                    راهنمای استفاده از فایل‌های موجود
+                </div>
+                <div style="background-color: #fff9c4; padding: 10px; border-radius: 4px; font-size: 12px; margin-bottom: 15px;">
+                    <p><strong>برای استفاده از فایل‌های داخل پوشه models:</strong></p>
+                    <ol style="padding-right: 20px; margin: 5px 0;">
+                        <li>این صفحه را با یک سرور وب محلی اجرا کنید (اگر مستقیم باز کرده‌اید، امکان دسترسی به پوشه وجود ندارد)</li>
+                        <li>یا از دکمه "آپلود فایل سه‌بعدی" در بالا استفاده کنید</li>
+                    </ol>
+                </div>
+            `;
+            modelList.appendChild(helpSection);
+            
+            // اضافه کردن مدل‌های پیش‌فرض آنلاین
+            const defaultSection = document.createElement('div');
+            defaultSection.innerHTML = `
+                <div style="margin: 15px 0 5px; font-weight: bold; color: #555;">
+                    مدل‌های آنلاین:
+                </div>
+            `;
+            modelList.appendChild(defaultSection);
+            
+            defaultModels.forEach(model => {
+                const link = document.createElement('a');
+                link.className = 'model-link';
+                link.textContent = model.name;
+                link.onclick = () => loadModelFromURL(model.url);
+                modelList.appendChild(link);
             });
             
-            // پس از بررسی تمام فایل‌ها
-            Promise.all(checkPromises)
-                .then(() => {
-                    console.log(`تعداد فایل‌های یافت شده: ${foundFiles.length}`);
-                    
-                    // مرتب‌سازی و نمایش فایل‌های یافت شده
-                    if (foundFiles.length > 0) {
-                        const localFilesSection = document.createElement('div');
-                        localFilesSection.innerHTML = `
-                            <div style="margin: 15px 0 5px; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px;">
-                                فایل‌های موجود در پوشه models (${foundFiles.length}):
-                            </div>
-                        `;
-                        modelList.appendChild(localFilesSection);
-                        
-                        // اضافه کردن فایل‌های یافت شده به لیست
-                        foundFiles.sort((a, b) => a.name.localeCompare(b.name));
-                        foundFiles.forEach(file => {
-                            const link = document.createElement('a');
-                            link.className = 'model-link';
-                            link.textContent = file.name;
-                            link.onclick = () => loadModelFromURL(file.url);
-                            modelList.appendChild(link);
-                        });
-                    }
-                    
-                    // نمایش فایل‌های پیش‌فرض
-                    const defaultSection = document.createElement('div');
-                    defaultSection.innerHTML = `
-                        <div style="margin: 15px 0 5px; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px;">
-                            مدل‌های پیش‌فرض آنلاین:
-                        </div>
-                    `;
-                    modelList.appendChild(defaultSection);
-                    
-                    defaultModels.forEach(model => {
-                        const link = document.createElement('a');
-                        link.className = 'model-link';
-                        link.textContent = model.name;
-                        link.onclick = () => loadModelFromURL(model.url);
-                        modelList.appendChild(link);
-                    });
-                    
-                    // اضافه کردن توضیحات راهنما
-                    if (foundFiles.length === 0) {
-                        const helpInfo = document.createElement('div');
-                        helpInfo.style.margin = '20px 0';
-                        helpInfo.style.padding = '10px';
-                        helpInfo.style.backgroundColor = '#fff9c4';
-                        helpInfo.style.borderRadius = '4px';
-                        helpInfo.style.fontSize = '12px';
-                        helpInfo.innerHTML = `
-                            <p><strong>راهنما:</strong> برای نمایش مدل‌های خود:</p>
-                            <ol style="padding-right: 20px; margin: 5px 0;">
-                                <li>از دکمه "آپلود مستقیم فایل 3D" استفاده کنید، یا</li>
-                                <li>فایل‌های GLB/GLTF را در پوشه <code>models</code> قرار دهید</li>
-                            </ol>
-                        `;
-                        modelList.appendChild(helpInfo);
-                    }
-                })
-                .catch(error => {
-                    console.error("خطا در بررسی فایل‌ها:", error);
-                    modelList.innerHTML = `
-                        <div style="text-align: center; color: #d32f2f; padding: 10px;">
-                            خطا در جستجوی فایل‌ها: ${error.message}
-                        </div>
-                        <div style="margin: 15px 0; text-align: center;">
-                            <button id="fallback-upload-btn" style="padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                آپلود مستقیم فایل 3D
-                            </button>
-                        </div>
-                    `;
-                    
-                    document.getElementById('fallback-upload-btn').addEventListener('click', () => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = '.glb,.gltf';
-                        input.onchange = (e) => {
-                            const file = e.target.files[0];
-                            if (file) loadModelFromFile(file);
-                        };
-                        input.click();
-                    });
-                });
+            // توضیح مشکل دسترسی به پوشه
+            const noteSection = document.createElement('div');
+            noteSection.style.marginTop = '20px';
+            noteSection.style.fontSize = '11px';
+            noteSection.style.color = '#666';
+            noteSection.style.borderTop = '1px solid #ddd';
+            noteSection.style.paddingTop = '10px';
+            noteSection.innerHTML = `
+                <p><strong>نکته مهم:</strong> به دلایل امنیتی، اگر صفحه را مستقیماً با مرورگر باز کرده‌اید (با کلیک روی فایل HTML)، 
+                امکان دسترسی به فایل‌های پوشه models وجود ندارد. برای حل این مشکل:</p>
+                <ul style="padding-right: 20px; margin: 5px 0;">
+                    <li>از یک سرور وب محلی استفاده کنید، یا</li>
+                    <li>از دکمه "آپلود فایل سه‌بعدی" استفاده کنید</li>
+                </ul>
+            `;
+            modelList.appendChild(noteSection);
         }
 
+        // حذف یا تغییر رویداد دکمه upload-btn
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainUploadBtn = document.getElementById('upload-btn');
+            if (mainUploadBtn) {
+                mainUploadBtn.addEventListener('click', () => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.glb,.gltf';
+                    input.onchange = (e) => {
+                        const file = e.target.files[0];
+                        if (file) loadModelFromFile(file);
+                    };
+                    input.click();
+                });
+            }
+        });
+        
         // شروع برنامه
         window.onload = init;
     </script>
