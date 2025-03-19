@@ -3,695 +3,395 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نمایشگر مدل‌های سه‌بعدی آنلاین</title>
+    <title>نمایشگر مدل‌های سه‌بعدی</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Vazir', Arial, sans-serif;
-            background-color: #f5f5f5;
-            color: #333;
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; }
+        #container { width: 100%; height: 100vh; position: relative; }
+        #model-viewer { width: 100%; height: 100%; background: #f0f0f0; }
+        #loading { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.8); padding: 15px 25px; border-radius: 10px;
+            display: none; z-index: 100;
         }
-        #container {
-            width: 100%;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+        #sidebar {
+            position: absolute; top: 10px; right: 10px; width: 200px;
+            background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        #model-viewer {
-            width: 100%;
-            height: 100vh; /* تغییر اندازه به کل ارتفاع صفحه بجای 85vh */
-            background-color: #e3e3e3;
-            position: relative;
-            border-radius: 5px;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
-        }
-        #controls, .file-input {
-            display: none;
-        }
-        #loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 18px;
-            color: #333;
-            background-color: rgba(255,255,255,0.8);
-            padding: 15px 25px;
-            border-radius: 30px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-            display: none;
-            z-index: 100;
-        }
-        #info {
-            position: absolute;
-            top: 10px;
-            right: 190px; /* اصلاح موقعیت با توجه به عرض منوی کناری */
-            background-color: rgba(255, 255, 255, 0.85);
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 14px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 10;
-        }
-        #error-info {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%); /* اضافه کردن transform برای مرکز قرار دادن */
-            color: #d32f2f;
-            text-align: center;
-            background-color: rgba(255,235,238,0.9);
-            padding: 10px 20px;
-            border-radius: 4px;
-            font-weight: bold;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
-            z-index: 1000;
-            display: none;
-            max-width: 80%;
-        }
-        .sidebar {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 160px;
-            max-height: 70vh;
-            overflow-y: auto;
-            background-color: rgba(255, 255, 255, 0.9);
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 12px;
-            z-index: 20;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
-        }
-        .sidebar h3 {
-            margin: 0 0 10px 0;
-            font-size: 16px;
-            color: #333;
-            border-bottom: 2px solid #4CAF50;
-            padding-bottom: 5px;
+        #sidebar h3 {
+            margin-top: 0; border-bottom: 1px solid #ccc; padding-bottom: 5px;
             text-align: center;
         }
         .model-link {
-            display: block;
-            margin: 8px 0;
-            padding: 8px 5px;
-            cursor: pointer;
-            color: #1976d2;
-            text-decoration: none;
-            border-bottom: 1px dashed #e0e0e0;
-            transition: all 0.2s ease;
-            font-size: 13px;
+            display: block; margin: 10px 0; cursor: pointer;
+            color: blue; text-decoration: underline;
         }
-        .model-link:hover {
-            background-color: #f1f8e9;
-            color: #2e7d32;
-            border-bottom: 1px solid #4CAF50;
-            padding-right: 8px;
-        }
-        .model-link:active {
-            background-color: #e8f5e9;
-        }
-        
-        @media screen and (max-width: 768px) {
-            #controls {
-                flex-direction: column;
-                align-items: center;
-            }
-            .file-input {
-                margin: 5px 0;
-            }
-            .sidebar {
-                position: relative;
-                width: calc(100% - 30px);
-                max-height: 200px;
-                margin: 10px auto;
-            }
-            #info {
-                top: 60px;
-                right: 10px;
-                max-width: calc(100% - 20px);
-            }
-        }
-        
-        /* استایل پنل کنترل نور */
-        .lighting-panel {
-            position: fixed; /* تغییر به fixed برای اطمینان از نمایش */
-            top: 10px;
-            left: 10px;
-            width: 220px;
-            background-color: rgba(255, 255, 255, 0.95);
-            border: 2px solid #4CAF50;
-            border-radius: 8px;
-            padding: 15px;
-            z-index: 1000; /* افزایش z-index برای اطمینان از نمایش روی سایر عناصر */
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        .lighting-panel h3 {
-            margin: 0 0 10px 0;
-            font-size: 16px;
-            color: #333;
-            border-bottom: 2px solid #4CAF50;
-            padding-bottom: 5px;
-            text-align: center;
-        }
-        
-        .lighting-panel label {
-            display: block;
-            margin: 8px 0 3px;
-            font-size: 12px;
-            color: #555;
-        }
-        
-        .lighting-panel input[type="range"] {
-            width: 100%;
-            margin: 5px 0;
-            -webkit-appearance: none;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 4px;
-            outline: none;
-        }
-        
-        .lighting-panel input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            background: #4CAF50;
+        #upload-btn {
+            display: block; width: 100%; padding: 8px; margin: 10px 0;
+            background: #4CAF50; color: white; border: none; border-radius: 4px;
             cursor: pointer;
         }
-        
-        .lighting-panel .value-display {
-            display: inline-block;
-            min-width: 30px;
-            text-align: right;
-            margin-right: 5px;
-            font-size: 12px;
-            color: #4CAF50;
-        }
-        
-        .toggle-button {
-            background: #f0f0f0;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            padding: 2px 6px;
-            margin: 2px;
-            font-size: 12px;
-            cursor: pointer;
-            color: #555;
-        }
-        
-        .toggle-button.active {
-            background: #4CAF50;
-            color: white;
-            border-color: #388E3C;
-        }
-
-        /* دکمه نمایش/مخفی‌سازی پنل نور */
-        #toggle-lighting-panel {
-            position: fixed;
-            bottom: 100px;
-            left: 10px;
-            z-index: 1001;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #toggle-lighting-panel:hover {
-            background-color: #3e8e41;
+        #info {
+            position: absolute; bottom: 10px; left: 10px; background: rgba(255,255,255,0.7);
+            padding: 5px 10px; border-radius: 3px; font-size: 12px;
         }
     </style>
-    <meta name="description" content="نمایشگر آنلاین مدل‌های سه‌بعدی GLTF/GLB با امکان بارگذاری مدل دلخواه">
-    <meta name="keywords" content="3D, model viewer, GLTF, GLB, Three.js, نمایشگر سه بعدی">
 </head>
 <body>
     <div id="container">
-        <div id="model-viewer">
-            <div id="loading">در حال بارگذاری مدل...</div>
-            <div id="info">برای چرخاندن مدل، کلیک کرده و درگ کنید<br>برای زوم، از چرخ موس استفاده کنید</div>
-            
-            <!-- منوی کناری برای نمایش خودکار فایل‌های موجود در پوشه models -->
-            <div class="sidebar" id="sidebar-models">
-                <h3>مدل‌های ذخیره‌شده</h3>
-                <!-- فایل‌های موجود در پوشه models به صورت داینامیک اینجا اضافه می‌شوند -->
-                <div id="models-list">
-                    <div style="text-align: center; padding: 10px; color: #666;">
-                        در حال بارگذاری مدل‌ها...
-                    </div>
-                </div>
-            </div>
-            
-            <!-- پنل کنترل نور با استایل جدید و شناسه یکتا -->
-            <div class="lighting-panel" id="lighting-panel">
-                <h3>تنظیمات نور</h3>
-                
-                <!-- نور محیطی -->
-                <label>
-                    <span class="value-display" id="ambient-value">0.7</span>
-                    شدت نور محیطی
-                </label>
-                <input type="range" id="ambient-intensity" min="0" max="2" step="0.05" value="0.7">
-                
-                <!-- نور جهت‌دار -->
-                <label>
-                    <span class="value-display" id="directional-value">0.8</span>
-                    شدت نور جهت‌دار
-                </label>
-                <input type="range" id="directional-intensity" min="0" max="2" step="0.05" value="0.8">
-                
-                <!-- زاویه نور در محور X -->
-                <label>
-                    <span class="value-display" id="light-x-value">1</span>
-                    موقعیت X نور
-                </label>
-                <input type="range" id="light-position-x" min="-5" max="5" step="0.1" value="1">
-                
-                <!-- زاویه نور در محور Y -->
-                <label>
-                    <span class="value-display" id="light-y-value">1</span>
-                    موقعیت Y نور
-                </label>
-                <input type="range" id="light-position-y" min="-5" max="5" step="0.1" value="1">
-                
-                <!-- زاویه نور در محور Z -->
-                <label>
-                    <span class="value-display" id="light-z-value">1</span>
-                    موقعیت Z نور
-                </label>
-                <input type="range" id="light-position-z" min="-5" max="5" step="0.1" value="1">
-                
-                <!-- کلیدهای انتخاب رنگ نور -->
-                <label>رنگ نور:</label>
-                <div>
-                    <button class="toggle-button active" data-color="#ffffff" id="light-white">سفید</button>
-                    <button class="toggle-button" data-color="#ffffcc" id="light-warm">گرم</button>
-                    <button class="toggle-button" data-color="#ccccff" id="light-cool">سرد</button>
-                </div>
-            </div>
-            
-            <!-- انتقال error-info به داخل model-viewer -->
-            <div id="error-info"></div>
+        <div id="model-viewer"></div>
+        <div id="loading">در حال بارگذاری...</div>
+        
+        <div id="sidebar">
+            <h3>مدل‌های سه‌بعدی</h3>
+            <button id="upload-btn">انتخاب فایل سه‌بعدی</button>
+            <div id="model-list"></div>
         </div>
         
-        <!-- حذف کامل div با شناسه controls -->
-        
-        <!-- دکمه نمایش/مخفی‌سازی پنل نور -->
-        <button id="toggle-lighting-panel" title="تنظیمات نور">💡</button>
+        <div id="info">برای چرخاندن مدل، کلیک کرده و درگ کنید. برای زوم، از چرخ موس استفاده کنید.</div>
     </div>
 
-    <!-- حذف اسکریپت‌های قبلی و جایگزینی با CDN‌های معتبر و استاتیک -->
-    <!-- کتابخانه اصلی Three.js و ماژول‌های مورد نیاز -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- کتابخانه Three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
 
-    <!-- بارگذاری مستقیم ماژول‌های مورد نیاز -->
+    <!-- اسکریپت اصلی -->
     <script>
-    // کد مستقیم کتابخانه GLTFLoader.js برای اطمینان از بارگذاری
-    // این کد از نسخه r128 کتابخانه Three.js استخراج شده است
-    console.log('شروع ثبت GLTFLoader...');
-    // منبع: https://github.com/mrdoob/three.js/blob/r128/examples/js/loaders/GLTFLoader.js
-    THREE.GLTFLoader = ( function () {
+        // متغیرهای اصلی
+        let scene, camera, renderer, controls, model;
+        const container = document.getElementById('model-viewer');
+        const loading = document.getElementById('loading');
+        const modelList = document.getElementById('model-list');
 
-        function GLTFLoader( manager ) {
+        // راه‌اندازی صحنه اصلی
+        function init() {
+            // ایجاد صحنه
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
 
-            THREE.Loader.call( this, manager );
+            // دوربین
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 5);
 
-            this.dracoLoader = null;
-            this.ktx2Loader = null;
-            this.meshoptDecoder = null;
+            // رندرر
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
 
-            this.pluginCallbacks = [];
+            // کنترل‌ها
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.enableZoom = true;
+            controls.enableRotate = true;
 
-            this.register( function ( parser ) {
+            // افزودن نور
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
 
-                return new GLTFMaterialsClearcoatExtension( parser );
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
 
-            } );
+            // نمایش یک مکعب اولیه
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const material = new THREE.MeshStandardMaterial({ color: 0x44aa88 });
+            model = new THREE.Mesh(geometry, material);
+            scene.add(model);
 
-            this.register( function ( parser ) {
+            // رویداد تغییر اندازه
+            window.addEventListener('resize', () => {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
 
-                return new GLTFTextureBasisUExtension( parser );
+            // راه‌اندازی انیمیشن
+            animate();
 
-            } );
+            // بارگذاری لیست مدل‌ها
+            loadModelsFromFolder();
 
-            this.register( function ( parser ) {
-
-                return new GLTFTextureWebPExtension( parser );
-
-            } );
-
-            this.register( function ( parser ) {
-
-                return new GLTFMaterialsSheenExtension( parser );
-
-            } );
-
-            this.register( function ( parser ) {
-
-                return new GLTFMaterialsTransmissionExtension( parser );
-
-            } );
-
-            this.register( function ( parser ) {
-
-                return new GLTFMaterialsVolumeExtension( parser );
-
-            } );
-
-            this.register( function ( parser ) {
-
-                return new GLTFMaterialsIorExtension( parser );
-
-            } );
-
-            this.register( function ( parser ) {
-
-                return new GLTFMaterialsSpecularExtension( parser );
-
-            } );
-
-            this.register( function ( parser ) {
-
-                return new GLTFLightsExtension( parser );
-
-            } );
-
-            this.register( function ( parser ) {
-
-                return new GLTFMeshoptCompression( parser );
-
-            } );
-
+            // رویداد دکمه آپلود - اضافه فایل به پوشه models
+            document.getElementById('upload-btn').addEventListener('click', () => {
+                alert('لطفاً فایل‌های GLB یا GLTF خود را در پوشه models قرار دهید تا در لیست نمایش داده شوند.');
+            });
         }
 
-        GLTFLoader.prototype = Object.assign( Object.create( THREE.Loader.prototype ), {
-
-            constructor: GLTFLoader,
-
-            load: function ( url, onLoad, onProgress, onError ) {
-
-                var scope = this;
-
-                var resourcePath;
-
-                if ( this.resourcePath !== '' ) {
-
-                    resourcePath = this.resourcePath;
-
-                } else if ( this.path !== '' ) {
-
-                    resourcePath = this.path;
-
-                } else {
-
-                    resourcePath = THREE.LoaderUtils.extractUrlBase( url );
-
-                }
-
-                // Tells the LoadingManager to track an extra item, which resolves after
-                // the model is fully loaded. This means the count of items loaded will
-                // be incorrect, but ensures manager.onLoad() does not fire early.
-                this.manager.itemStart( url );
-
-                var _onError = function ( e ) {
-
-                    if ( onError ) {
-
-                        onError( e );
-
-                    } else {
-
-                        console.error( e );
-
-                    }
-
-                    scope.manager.itemError( url );
-                    scope.manager.itemEnd( url );
-
-                };
-
-                var loader = new THREE.FileLoader( this.manager );
-
-                loader.setPath( this.path );
-                loader.setRequestHeader( this.requestHeader );
-                loader.setWithCredentials( this.withCredentials );
-
-                loader.load( url, function ( text ) {
-
-                    try {
-
-                        scope.parse( text, resourcePath, function ( gltf ) {
-
-                            onLoad( gltf );
-
-                            scope.manager.itemEnd( url );
-
-                        }, _onError );
-
-                    } catch ( e ) {
-
-                        _onError( e );
-
-                    }
-
-                }, onProgress, _onError );
-
-            },
-
-            parse: function ( json, path, onLoad, onError ) {
-
-                // کد کوتاه شده - فقط برای نمایش
-                // این کتابخانه کامل در فایل اصلی وجود دارد
-
-                console.log('GLTFLoader با موفقیت ثبت شد.');
-                
-                var parser = new GLTFParser( json, path );
-                parser.parse( onLoad, onError );
-            }
-        } );
-
-        /* GLTFREGISTRY */
-
-        function GLTFRegistry() {
-
-            var objects = {};
-
-            return {
-
-                get: function ( key ) {
-
-                    return objects[ key ];
-
-                },
-
-                add: function ( key, object ) {
-
-                    objects[ key ] = object;
-
-                },
-
-                remove: function ( key ) {
-
-                    delete objects[ key ];
-
-                },
-
-                removeAll: function () {
-
-                    objects = {};
-
-                }
-
-            };
-
+        // حلقه انیمیشن
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls) controls.update();
+            renderer.render(scene, camera);
         }
 
-        /* کدهای دیگر GLTFLoader... */
-        // بخشی از کد به دلیل طولانی بودن نمایش داده نشده است
-
-        // کد مهم برای ایجاد نمونه پارسر و ثبت در THREE
-        function GLTFParser( json, path ) {
-            this.json = json || {};
-            this.path = path || '';
-            this.cache = new GLTFRegistry();
-            this.primitiveCache = {};
-            this.textureCache = {};
-            this.nodeCache = {};
-            this.meshCache = { refs: {}, uses: {} };
-            this.cameraCache = {};
-            this.lightCache = {};
-            this.materialCache = {};
-            this.extensions = {};
-            this.associations = new Map();
-        }
-
-        GLTFParser.prototype = {
-            constructor: GLTFParser,
-            parse: function ( onLoad, onError ) {
-                // پیاده‌سازی متد پارس
-                // ...
-                console.log('GLTFParser آماده‌سازی شد.');
-                onLoad({});
-            }
-        };
-
-        return GLTFLoader;
-
-    } )();
-
-    // کد مستقیم کتابخانه OrbitControls برای اطمینان از بارگذاری
-    console.log('شروع ثبت OrbitControls...');
-    // منبع: https://github.com/mrdoob/three.js/blob/r128/examples/js/controls/OrbitControls.js
-    THREE.OrbitControls = function ( object, domElement ) {
-
-        if ( domElement === undefined ) console.warn( 'THREE.OrbitControls: The second parameter "domElement" is now mandatory.' );
-        if ( domElement === document ) console.error( 'THREE.OrbitControls: "document" should not be used as the target "domElement". Please use "renderer.domElement" instead.' );
-
-        this.object = object;
-        this.domElement = domElement;
-
-        // API
-        this.enabled = true;
-        this.target = new THREE.Vector3();
-        this.minDistance = 0;
-        this.maxDistance = Infinity;
-        this.minZoom = 0;
-        this.maxZoom = Infinity;
-        this.minPolarAngle = 0;
-        this.maxPolarAngle = Math.PI;
-        this.minAzimuthAngle = - Infinity;
-        this.maxAzimuthAngle = Infinity;
-        this.enableDamping = false;
-        this.dampingFactor = 0.05;
-        this.enableZoom = true;
-        this.zoomSpeed = 1.0;
-        this.enableRotate = true;
-        this.rotateSpeed = 1.0;
-        this.enablePan = true;
-        this.panSpeed = 1.0;
-        this.screenSpacePanning = true;
-        this.keyPanSpeed = 7.0;
-        this.autoRotate = false;
-        this.autoRotateSpeed = 2.0;
-        this.keys = { LEFT: 'ArrowLeft', UP: 'ArrowUp', RIGHT: 'ArrowRight', BOTTOM: 'ArrowDown' };
-        this.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
-        this.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
-
-        // متدهای کلاس
-
-        this.update = function () {
-            // پیاده‌سازی متد update
-            console.log('OrbitControls به روز رسانی شد.');
-            return true;
-        };
-
-        this.dispose = function () {
-            // پیاده‌سازی متد dispose
-        };
-
-        // code...
-        console.log('OrbitControls با موفقیت ثبت شد.');
-    };
-    </script>
-
-    <!-- اسکریپت برای اطمینان از بارگذاری کتابخانه‌ها -->
-    <script>
-    // بررسی وجود کتابخانه‌ها
-    function checkLibraries() {
-        console.log("بررسی کتابخانه‌ها...");
-        
-        if (typeof THREE === 'undefined') {
-            console.error("THREE پیدا نشد!");
-            return false;
-        } else {
-            console.log("THREE پیدا شد:", THREE.REVISION);
-        }
-        
-        if (typeof THREE.OrbitControls === 'undefined') {
-            console.error("THREE.OrbitControls پیدا نشد!");
-            return false;
-        } else {
-            console.log("THREE.OrbitControls پیدا شد");
-        }
-        
-        if (typeof THREE.GLTFLoader === 'undefined') {
-            console.error("THREE.GLTFLoader پیدا نشد!");
-            return false;
-        } else {
-            console.log("THREE.GLTFLoader پیدا شد");
-        }
-        
-        return true;
-    }
-
-    // فراخوانی مستقیم تابع بررسی و بارگذاری اسکریپت اصلی در صورت موفقیت
-    if (checkLibraries()) {
-        console.log("همه کتابخانه‌ها با موفقیت بارگذاری شدند. اسکریپت اصلی را بارگذاری می‌کنیم...");
-        
-        const script = document.createElement('script');
-        script.src = 'script.js';
-        
-        script.onload = function() {
-            console.log("اسکریپت اصلی با موفقیت بارگذاری شد");
+        // بارگذاری مدل از فایل
+        function loadModelFromFile(file) {
+            loading.style.display = 'block';
             
-            setTimeout(function() {
-                try {
-                    // فراخوانی تابع‌های اصلی
-                    if (typeof initScene === 'function') {
-                        initScene();
-                        if (typeof animate === 'function') {
-                            animate();
-                        } else {
-                            console.error("تابع animate یافت نشد");
-                        }
-                        
-                        // فراخوانی مستقیم loadModelsList
-                        if (typeof loadModelsList === 'function') {
-                            console.log("فراخوانی تابع loadModelsList");
-                            loadModelsList();
-                        } else {
-                            console.error("تابع loadModelsList یافت نشد");
-                            document.getElementById('error-info').textContent = "خطا: تابع loadModelsList یافت نشد";
-                            document.getElementById('error-info').style.display = 'block';
-                        }
-                    } else {
-                        console.error("تابع initScene یافت نشد");
-                        document.getElementById('error-info').textContent = "خطا: تابع initScene یافت نشد";
-                        document.getElementById('error-info').style.display = 'block';
-                    }
-                } catch (error) {
-                    console.error("خطا در اجرای توابع اصلی:", error);
-                    document.getElementById('error-info').textContent = "خطا در اجرای توابع اصلی: " + error.message;
-                    document.getElementById('error-info').style.display = 'block';
+            if (model) {
+                scene.remove(model);
+                model = null;
+            }
+
+            const loader = new THREE.GLTFLoader();
+            const fileURL = URL.createObjectURL(file);
+            
+            loader.load(fileURL, 
+                function(gltf) {
+                    model = gltf.scene;
+                    centerModel(model);
+                    scene.add(model);
+                    loading.style.display = 'none';
+                    URL.revokeObjectURL(fileURL);
+                },
+                function(xhr) {
+                    const percent = xhr.loaded / xhr.total * 100;
+                    loading.textContent = `بارگذاری: ${Math.round(percent)}%`;
+                },
+                function(error) {
+                    console.error('خطا در بارگذاری مدل:', error);
+                    loading.textContent = 'خطا در بارگذاری مدل';
+                    setTimeout(() => { loading.style.display = 'none'; }, 2000);
+                    URL.revokeObjectURL(fileURL);
                 }
-            }, 100);
-        };
-        
-        script.onerror = function() {
-            console.error("خطا در بارگذاری اسکریپت اصلی");
-            document.getElementById('error-info').textContent = "خطا در بارگذاری اسکریپت اصلی";
-            document.getElementById('error-info').style.display = 'block';
-        };
-        
-        document.body.appendChild(script);
-    } else {
-        document.getElementById('error-info').textContent = "خطا در بارگذاری کتابخانه‌های مورد نیاز";
-        document.getElementById('error-info').style.display = 'block';
-    }
+            );
+        }
+
+        // بارگذاری مدل از URL
+        function loadModelFromURL(url) {
+            loading.style.display = 'block';
+            
+            if (model) {
+                scene.remove(model);
+                model = null;
+            }
+
+            const loader = new THREE.GLTFLoader();
+            
+            loader.load(url, 
+                function(gltf) {
+                    model = gltf.scene;
+                    centerModel(model);
+                    scene.add(model);
+                    loading.style.display = 'none';
+                },
+                function(xhr) {
+                    const percent = xhr.loaded / xhr.total * 100;
+                    loading.textContent = `بارگذاری: ${Math.round(percent)}%`;
+                },
+                function(error) {
+                    console.error('خطا در بارگذاری مدل:', error);
+                    loading.textContent = 'خطا در بارگذاری مدل';
+                    setTimeout(() => { loading.style.display = 'none'; }, 2000);
+                }
+            );
+        }
+
+        // تراز کردن مدل در مرکز صحنه
+        function centerModel(model) {
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            model.position.x -= center.x;
+            model.position.y -= center.y;
+            model.position.z -= center.z;
+            
+            const size = box.getSize(new THREE.Vector3());
+            const maxSize = Math.max(size.x, size.y, size.z);
+            if (maxSize > 0) {
+                const scale = 2 / maxSize;
+                model.scale.set(scale, scale, scale);
+            }
+        }
+
+        // بارگذاری لیست مدل‌ها
+        function loadModelList() {
+            loadModelsFromFolder();
+        }
+
+        // تابع جدید برای اسکن پوشه models با روش‌های مختلف
+        function loadModelsFromFolder() {
+            // پاک کردن لیست قبلی
+            modelList.innerHTML = '<div style="text-align: center; color: #666; margin: 10px 0;">در حال اسکن پوشه models...</div>';
+            
+            console.log("شروع جستجوی فایل‌های مدل در پوشه models...");
+            
+            // روش اول: استفاده از فایل‌های مدل پیش‌فرض از مخزن Three.js
+            // این روش همیشه کار می‌کند و حداقل چند مدل نمایش می‌دهد
+            const defaultModels = [
+                { name: 'مکعب (نمونه)', url: 'https://threejs.org/examples/models/gltf/cube/cube.gltf' },
+                { name: 'طبیعت (نمونه)', url: 'https://threejs.org/examples/models/gltf/LittlestTokyo.glb' }
+            ];
+            
+            // روش دوم: جستجوی مستقیم فایل‌های رایج در پوشه models
+            const localFileNames = [
+                'cube.glb', 'sphere.glb', 'cylinder.glb', 'cone.glb', 'torus.glb',
+                'model.glb', 'scene.glb', 'asset.glb', 'example.glb', 'sample.glb',
+                // اضافه کردن نام‌های فایل‌های خاص کاربر
+                'box.glb', 'car.glb', 'chair.glb', 'table.glb'
+            ];
+            
+            // نتایج نهایی
+            const foundFiles = [];
+            
+            // ایجاد فرم پنهان برای آپلود فایل
+            const uploadForm = document.createElement('div');
+            uploadForm.innerHTML = `
+                <div style="margin: 15px 0; text-align: center;">
+                    <input type="file" id="direct-file-input" accept=".glb,.gltf" style="display: none;">
+                    <button id="direct-upload-btn" style="padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%;">
+                        آپلود مستقیم فایل 3D
+                    </button>
+                </div>
+            `;
+            modelList.appendChild(uploadForm);
+            
+            // رویداد دکمه آپلود مستقیم
+            document.getElementById('direct-upload-btn').addEventListener('click', () => {
+                document.getElementById('direct-file-input').click();
+            });
+            
+            // رویداد انتخاب فایل
+            document.getElementById('direct-file-input').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    console.log(`فایل انتخاب شده: ${file.name}`);
+                    loadModelFromFile(file);
+                    
+                    // اضافه کردن فایل انتخاب شده به لیست
+                    const selectedFileInfo = document.createElement('div');
+                    selectedFileInfo.style.margin = '5px 0';
+                    selectedFileInfo.style.padding = '5px';
+                    selectedFileInfo.style.backgroundColor = '#e8f5e9';
+                    selectedFileInfo.style.borderRadius = '4px';
+                    selectedFileInfo.innerHTML = `<strong>فایل بارگذاری شده:</strong> ${file.name}`;
+                    
+                    // قرار دادن در بالای لیست فایل‌ها
+                    const firstModelLink = modelList.querySelector('.model-link');
+                    if (firstModelLink) {
+                        modelList.insertBefore(selectedFileInfo, firstModelLink);
+                    } else {
+                        modelList.appendChild(selectedFileInfo);
+                    }
+                }
+            });
+            
+            // روش جدید: درخواست‌های مستقیم برای هر فایل با نمایش جزئیات خطا
+            const checkPromises = localFileNames.map(filename => {
+                const url = `models/${filename}`;
+                console.log(`بررسی فایل: ${url}`);
+                
+                return fetch(url)
+                    .then(response => {
+                        if (response.ok) {
+                            console.log(`فایل یافت شد: ${filename}`);
+                            foundFiles.push({
+                                name: filename,
+                                url: url
+                            });
+                            return true;
+                        } else {
+                            console.log(`فایل یافت نشد (${response.status}): ${filename}`);
+                            return false;
+                        }
+                    })
+                    .catch(error => {
+                        console.log(`خطا در بررسی فایل ${filename}: ${error.message}`);
+                        return false;
+                    });
+            });
+            
+            // پس از بررسی تمام فایل‌ها
+            Promise.all(checkPromises)
+                .then(() => {
+                    console.log(`تعداد فایل‌های یافت شده: ${foundFiles.length}`);
+                    
+                    // مرتب‌سازی و نمایش فایل‌های یافت شده
+                    if (foundFiles.length > 0) {
+                        const localFilesSection = document.createElement('div');
+                        localFilesSection.innerHTML = `
+                            <div style="margin: 15px 0 5px; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px;">
+                                فایل‌های موجود در پوشه models (${foundFiles.length}):
+                            </div>
+                        `;
+                        modelList.appendChild(localFilesSection);
+                        
+                        // اضافه کردن فایل‌های یافت شده به لیست
+                        foundFiles.sort((a, b) => a.name.localeCompare(b.name));
+                        foundFiles.forEach(file => {
+                            const link = document.createElement('a');
+                            link.className = 'model-link';
+                            link.textContent = file.name;
+                            link.onclick = () => loadModelFromURL(file.url);
+                            modelList.appendChild(link);
+                        });
+                    }
+                    
+                    // نمایش فایل‌های پیش‌فرض
+                    const defaultSection = document.createElement('div');
+                    defaultSection.innerHTML = `
+                        <div style="margin: 15px 0 5px; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px;">
+                            مدل‌های پیش‌فرض آنلاین:
+                        </div>
+                    `;
+                    modelList.appendChild(defaultSection);
+                    
+                    defaultModels.forEach(model => {
+                        const link = document.createElement('a');
+                        link.className = 'model-link';
+                        link.textContent = model.name;
+                        link.onclick = () => loadModelFromURL(model.url);
+                        modelList.appendChild(link);
+                    });
+                    
+                    // اضافه کردن توضیحات راهنما
+                    if (foundFiles.length === 0) {
+                        const helpInfo = document.createElement('div');
+                        helpInfo.style.margin = '20px 0';
+                        helpInfo.style.padding = '10px';
+                        helpInfo.style.backgroundColor = '#fff9c4';
+                        helpInfo.style.borderRadius = '4px';
+                        helpInfo.style.fontSize = '12px';
+                        helpInfo.innerHTML = `
+                            <p><strong>راهنما:</strong> برای نمایش مدل‌های خود:</p>
+                            <ol style="padding-right: 20px; margin: 5px 0;">
+                                <li>از دکمه "آپلود مستقیم فایل 3D" استفاده کنید، یا</li>
+                                <li>فایل‌های GLB/GLTF را در پوشه <code>models</code> قرار دهید</li>
+                            </ol>
+                        `;
+                        modelList.appendChild(helpInfo);
+                    }
+                })
+                .catch(error => {
+                    console.error("خطا در بررسی فایل‌ها:", error);
+                    modelList.innerHTML = `
+                        <div style="text-align: center; color: #d32f2f; padding: 10px;">
+                            خطا در جستجوی فایل‌ها: ${error.message}
+                        </div>
+                        <div style="margin: 15px 0; text-align: center;">
+                            <button id="fallback-upload-btn" style="padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                آپلود مستقیم فایل 3D
+                            </button>
+                        </div>
+                    `;
+                    
+                    document.getElementById('fallback-upload-btn').addEventListener('click', () => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = '.glb,.gltf';
+                        input.onchange = (e) => {
+                            const file = e.target.files[0];
+                            if (file) loadModelFromFile(file);
+                        };
+                        input.click();
+                    });
+                });
+        }
+
+        // شروع برنامه
+        window.onload = init;
     </script>
 </body>
 </html>
