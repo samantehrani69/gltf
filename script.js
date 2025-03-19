@@ -458,7 +458,7 @@ function animate() {
 // پیام خوشامدگویی در کنسول
 console.log('نمایشگر مدل‌های GLTF/GLB آماده است. از منوی کناری یک مدل انتخاب کنید.');
 
-// تابع بهبود یافته برای بارگذاری لیست مدل‌ها از پوشه models
+// رویکرد ساده‌تر برای بارگذاری لیست مدل‌ها از models folder
 function loadModelsList() {
     const modelsList = document.getElementById('models-list');
     if (!modelsList) {
@@ -469,91 +469,135 @@ function loadModelsList() {
     // نمایش پیام بارگذاری
     modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">در حال بارگذاری مدل‌ها...</div>';
     
-    // بررسی‌ خودکار فایل‌های GLB و GLTF در پوشه models
-    fetch('models/')
-        .then(response => response.text())
-        .then(html => {
-            // استفاده از پارسر DOM برای استخراج لینک‌ها
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const links = Array.from(doc.querySelectorAll('a'));
+    // روش ساده‌تر با استفاده از فایل‌های GLB ثابت در پوشه models
+    const modelFiles = [
+        { name: 'مثال 1.glb', file: 'example1.glb' },
+        { name: 'مثال 2.glb', file: 'example2.glb' },
+        { name: 'مثال 3.glb', file: 'example3.glb' }
+    ];
+
+    // کد زیر مستقیماً فایل‌های موجود در پوشه models را جستجو می‌کند
+    // این روشی ساده‌تر و مطمئن‌تر است
+    const findModelsInFolder = () => {
+        return new Promise((resolve) => {
+            // لیست فایل‌های GLB/GLTF
+            const foundModels = [];
             
-            // فیلتر کردن فقط فایل‌های GLB و GLTF
-            const modelFiles = links
-                .map(link => link.href)
-                .filter(href => href.toLowerCase().endsWith('.glb') || href.toLowerCase().endsWith('.gltf'))
-                .map(href => {
-                    const url = new URL(href);
-                    const filename = url.pathname.split('/').pop();
-                    return {
-                        name: filename,
-                        file: filename,
-                        url: href
-                    };
+            // ابتدا تلاش برای بارگذاری فایل‌های شناخته شده
+            const knownModels = [
+                'cube.glb', 'sphere.glb', 'cylinder.glb', 'cone.glb', 'torus.glb', 
+                'example.glb', 'example1.glb', 'example2.glb', 'example3.glb',
+                'model.glb', 'model.gltf', 'test.glb', 'test.gltf'
+            ];
+            
+            // بررسی تک تک فایل‌های شناخته شده
+            const checkPromises = knownModels.map(filename => {
+                return new Promise((fileResolve) => {
+                    fetch(`models/${filename}`)
+                        .then(response => {
+                            if (response.ok) {
+                                foundModels.push({
+                                    name: filename,
+                                    file: filename,
+                                    url: `models/${filename}`
+                                });
+                            }
+                            fileResolve();
+                        })
+                        .catch(() => fileResolve());
                 });
-            
-            // بررسی وجود فایل مدل
-            if (modelFiles.length === 0) {
-                modelsList.innerHTML = `
-                    <div style="text-align: center; padding: 10px; color: #666;">
-                        هیچ فایل GLB یا GLTF در پوشه models یافت نشد.<br>
-                        <small>لطفاً فایل‌های سه‌بعدی خود را در پوشه models قرار دهید.</small>
-                    </div>`;
-                console.warn('هیچ فایل GLB یا GLTF در پوشه models یافت نشد');
-                return;
-            }
-            
-            // پاک کردن لیست قبلی
-            modelsList.innerHTML = '';
-            
-            // اضافه کردن مدل‌ها به لیست
-            modelFiles.forEach(model => {
-                const link = document.createElement('a');
-                link.className = 'model-link';
-                link.textContent = model.name;
-                
-                // اضافه کردن رویداد کلیک
-                link.addEventListener('click', function() {
-                    // انتخاب این مدل در لیست
-                    document.querySelectorAll('.model-link').forEach(item => {
-                        item.style.fontWeight = 'normal';
-                    });
-                    link.style.fontWeight = 'bold';
-                    
-                    // نمایش پیام بارگذاری
-                    document.getElementById('loading').style.display = 'block';
-                    document.getElementById('loading').textContent = 'در حال بارگذاری مدل...';
-                    
-                    // بارگذاری مدل
-                    console.log('بارگذاری مدل:', model.file);
-                    loadModelURL(`models/${model.file}`);
-                });
-                
-                modelsList.appendChild(link);
             });
             
-            console.log(`${modelFiles.length} مدل یافت شد و در لیست نمایش داده شد.`);
+            // پس از بررسی همه فایل‌ها، نتیجه را برمی‌گردانیم
+            Promise.all(checkPromises).then(() => resolve(foundModels));
+        });
+    };
+    
+    // اجرای جستجوی فایل‌ها
+    findModelsInFolder()
+        .then(foundModels => {
+            if (foundModels.length > 0) {
+                // پاک کردن لیست قبلی
+                modelsList.innerHTML = '';
+                
+                // اضافه کردن مدل‌ها به لیست
+                foundModels.forEach(model => {
+                    const link = document.createElement('a');
+                    link.className = 'model-link';
+                    link.textContent = model.name;
+                    
+                    // اضافه کردن رویداد کلیک
+                    link.addEventListener('click', function() {
+                        // انتخاب این مدل در لیست
+                        document.querySelectorAll('.model-link').forEach(item => {
+                            item.style.fontWeight = 'normal';
+                        });
+                        link.style.fontWeight = 'bold';
+                        
+                        // نمایش پیام بارگذاری
+                        document.getElementById('loading').style.display = 'block';
+                        document.getElementById('loading').textContent = 'در حال بارگذاری مدل...';
+                        
+                        // بارگذاری مدل
+                        console.log('بارگذاری مدل:', model.file);
+                        loadModelURL(`models/${model.file}`);
+                    });
+                    
+                    modelsList.appendChild(link);
+                });
+                
+                console.log(`${foundModels.length} مدل در پوشه models یافت شد.`);
+            } else {
+                // هیچ فایلی یافت نشد - نمایش دکمه آپلود
+                modelsList.innerHTML = `
+                    <div style="text-align: center; padding: 10px; color: #666;">
+                        هیچ فایل GLB یا GLTF در پوشه models یافت نشد.
+                    </div>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <button id="add-model-button" style="padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            افزودن مدل جدید
+                        </button>
+                    </div>`;
+                
+                // اضافه کردن رویداد برای دکمه آپلود
+                const uploadBtn = document.getElementById('add-model-button');
+                if (uploadBtn) {
+                    uploadBtn.addEventListener('click', function() {
+                        // ایجاد input برای انتخاب فایل
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = '.glb,.gltf';
+                        
+                        fileInput.addEventListener('change', function(event) {
+                            const file = event.target.files[0];
+                            if (file) {
+                                loadModel(file);
+                            }
+                        });
+                        
+                        // شبیه‌سازی کلیک روی input
+                        fileInput.click();
+                    });
+                }
+            }
         })
         .catch(error => {
-            console.error('خطا در اسکن پوشه models:', error);
-            
-            // برنامه نمی‌تواند فایل‌ها را اسکن کند، پس یک پیام مناسب نمایش می‌دهیم
+            console.error('خطا در جستجوی فایل‌های مدل:', error);
             modelsList.innerHTML = `
                 <div style="text-align: center; padding: 10px; color: #d32f2f;">
-                    خطا در دسترسی به پوشه models<br>
-                    <small>برای استفاده از این قابلیت، صفحه باید از طریق یک سرور وب میزبانی شود.</small>
+                    خطا در جستجوی فایل‌های مدل<br>
+                    <small>${error.message || 'خطای ناشناخته'}</small>
                 </div>
                 <div style="text-align: center; margin-top: 15px;">
                     <button id="add-model-button" style="padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
                         افزودن مدل جدید
                     </button>
                 </div>`;
-                
+            
             // اضافه کردن رویداد برای دکمه آپلود
             const uploadBtn = document.getElementById('add-model-button');
             if (uploadBtn) {
                 uploadBtn.addEventListener('click', function() {
-                    // ایجاد input برای انتخاب فایل
                     const fileInput = document.createElement('input');
                     fileInput.type = 'file';
                     fileInput.accept = '.glb,.gltf';
@@ -565,7 +609,6 @@ function loadModelsList() {
                         }
                     });
                     
-                    // شبیه‌سازی کلیک روی input
                     fileInput.click();
                 });
             }
