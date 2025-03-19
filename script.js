@@ -458,7 +458,7 @@ function animate() {
 // پیام خوشامدگویی در کنسول
 console.log('نمایشگر مدل‌های GLTF/GLB آماده است. از منوی کناری یک مدل انتخاب کنید.');
 
-// تابع جدید برای بارگذاری لیست مدل‌ها - بدون استفاده از API گیت‌هاب
+// تابع بهبود یافته برای بارگذاری لیست مدل‌ها از پوشه models
 function loadModelsList() {
     const modelsList = document.getElementById('models-list');
     if (!modelsList) {
@@ -467,37 +467,62 @@ function loadModelsList() {
     }
     
     // نمایش پیام بارگذاری
-    modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">در حال اسکن فایل‌های مدل...</div>';
+    modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">در حال بارگذاری مدل‌ها...</div>';
     
-    // لیست مدل‌ها به صورت ثابت (hard-coded)
+    // لیست مدل‌ها به صورت ثابت (hard-coded) براساس فایل‌هایی که در پوشه models وجود دارد
     const models = [
-        { name: 'مکعب', file: 'cube.glb' },
-        { name: 'کره', file: 'sphere.glb' },
-        { name: 'استوانه', file: 'cylinder.glb' },
-        { name: 'مخروط', file: 'cone.glb' },
-        { name: 'حلقه', file: 'torus.glb' }
+        { name: 'مکعب ساده', file: 'cube.glb', description: 'یک مکعب سه بعدی ساده' },
+        { name: 'کره', file: 'sphere.glb', description: 'یک کره سه بعدی ساده' },
+        { name: 'استوانه', file: 'cylinder.glb', description: 'یک استوانه سه بعدی ساده' },
+        { name: 'مخروط', file: 'cone.glb', description: 'یک مخروط سه بعدی ساده' },
+        { name: 'حلقه', file: 'torus.glb', description: 'یک حلقه سه بعدی ساده' }
     ];
     
     // پاک کردن لیست قبلی
     modelsList.innerHTML = '';
     
-    // اضافه کردن مدل‌ها به لیست
-    models.forEach(model => {
-        const link = document.createElement('a');
-        link.className = 'model-link';
-        link.textContent = model.name;
-        link.addEventListener('click', () => {
-            // انتخاب این مدل در لیست
-            document.querySelectorAll('.model-link').forEach(item => {
-                item.style.fontWeight = 'normal';
+    try {
+        // اضافه کردن مدل‌ها به لیست
+        if (models && models.length > 0) {
+            models.forEach(model => {
+                const link = document.createElement('a');
+                link.className = 'model-link';
+                link.textContent = model.name;
+                link.title = model.description || '';
+                
+                // اضافه کردن رویداد کلیک
+                link.addEventListener('click', function() {
+                    // انتخاب این مدل در لیست
+                    document.querySelectorAll('.model-link').forEach(item => {
+                        item.style.fontWeight = 'normal';
+                    });
+                    link.style.fontWeight = 'bold';
+                    
+                    // نمایش پیام بارگذاری
+                    document.getElementById('loading').style.display = 'block';
+                    document.getElementById('loading').textContent = 'در حال بارگذاری مدل...';
+                    
+                    // بارگذاری مدل
+                    console.log('بارگذاری مدل:', model.file);
+                    loadModelURL(`models/${model.file}`);
+                });
+                
+                modelsList.appendChild(link);
             });
-            link.style.fontWeight = 'bold';
             
-            // بارگذاری مدل
-            loadModelURL(`models/${model.file}`);
-        });
-        modelsList.appendChild(link);
-    });
-    
-    console.log(`${models.length} مدل به لیست اضافه شد.`);
+            console.log(`${models.length} مدل به لیست اضافه شد.`);
+        } else {
+            modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">هیچ مدلی یافت نشد</div>';
+            console.warn('هیچ مدلی برای نمایش وجود ندارد');
+        }
+    } catch (error) {
+        console.error('خطا در بارگذاری لیست مدل‌ها:', error);
+        modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #d32f2f;">خطا در بارگذاری لیست مدل‌ها</div>';
+    }
 }
+
+// انتساب تابع به window برای دسترسی از بیرون
+window.loadModelsList = loadModelsList;
+window.initScene = initScene;
+window.animate = animate;
+window.setupOrbitControls = setupOrbitControls;
