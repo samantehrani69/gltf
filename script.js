@@ -1,8 +1,18 @@
-// متغیرهای اصلی
+// متغیرهای اصلی - با بررسی اضافی
 let scene, camera, renderer, controls, model;
 let ambientLight, directionalLight; // متغیرهای نور
+// بررسی وجود container قبل از استفاده
 let container = document.getElementById('model-viewer');
+if (!container) {
+    console.error('المان model-viewer یافت نشد');
+    throw new Error('المان model-viewer در HTML موجود نیست');
+}
+
 let loadingElement = document.getElementById('loading');
+if (!loadingElement) {
+    console.error('المان loading یافت نشد');
+}
+
 let isWebGLSupported = true;
 
 // بررسی پشتیبانی از WebGL
@@ -112,13 +122,8 @@ function onWindowResize() {
 // تابع انیمیشن
 function animate() {
     requestAnimationFrame(animate);
-    controls.update();
-    
-    // به‌روزرسانی نور در هر فریم
-    // این می‌تواند برای افکت‌های خاص مورد استفاده قرار گیرد
-    // directionalLight.position.x = Math.sin(Date.now() * 0.001) * 3;
-    
-    renderer.render(scene, camera);
+    if (controls) controls.update();
+    if (renderer && scene && camera) renderer.render(scene, camera);
 }
 
 // تابع بارگذاری مدل
@@ -284,99 +289,96 @@ function showError(message) {
     }, 3000);
 }
 
-// تابع تنظیم کنترل‌های نور - بازنویسی شده با محافظت بیشتر
+// تابع تنظیم کنترل‌های نور - با بررسی اضافی برای وجود المان‌ها
 function setupLightingControls() {
     console.log('شروع تنظیم کنترل‌های نور...');
     
     try {
+        // بررسی وجود تمام المان‌های مورد نیاز به صورت یکجا
+        const elements = {
+            ambientIntensity: document.getElementById('ambient-intensity'),
+            ambientValue: document.getElementById('ambient-value'),
+            directionalIntensity: document.getElementById('directional-intensity'),
+            directionalValue: document.getElementById('directional-value'),
+            lightPositionX: document.getElementById('light-position-x'),
+            lightXValue: document.getElementById('light-x-value'),
+            lightPositionY: document.getElementById('light-position-y'),
+            lightYValue: document.getElementById('light-y-value'),
+            lightPositionZ: document.getElementById('light-position-z'),
+            lightZValue: document.getElementById('light-z-value'),
+            lightingPanel: document.getElementById('lighting-panel')
+        };
+        
+        // بررسی وجود المان‌ها
+        for (const [key, element] of Object.entries(elements)) {
+            if (!element) {
+                console.error(`المان ${key} یافت نشد`);
+            }
+        }
+        
         // کنترل شدت نور محیطی
-        const ambientIntensity = document.getElementById('ambient-intensity');
-        if (ambientIntensity) {
-            console.log('المان ambient-intensity یافت شد');
-            ambientIntensity.addEventListener('input', function(e) {
+        if (elements.ambientIntensity) {
+            elements.ambientIntensity.addEventListener('input', function(e) {
                 if (!ambientLight) {
                     console.error('متغیر ambientLight تعریف نشده است');
                     return;
                 }
                 const value = parseFloat(e.target.value);
                 ambientLight.intensity = value;
-                const ambientValue = document.getElementById('ambient-value');
-                if (ambientValue) ambientValue.textContent = value.toFixed(2);
+                if (elements.ambientValue) elements.ambientValue.textContent = value.toFixed(2);
             });
-        } else {
-            console.error('المان ambient-intensity یافت نشد');
         }
         
         // کنترل شدت نور جهت‌دار
-        const directionalIntensity = document.getElementById('directional-intensity');
-        if (directionalIntensity) {
-            console.log('المان directional-intensity یافت شد');
-            directionalIntensity.addEventListener('input', function(e) {
+        if (elements.directionalIntensity) {
+            elements.directionalIntensity.addEventListener('input', function(e) {
                 if (!directionalLight) {
                     console.error('متغیر directionalLight تعریف نشده است');
                     return;
                 }
                 const value = parseFloat(e.target.value);
                 directionalLight.intensity = value;
-                const directionalValue = document.getElementById('directional-value');
-                if (directionalValue) directionalValue.textContent = value.toFixed(2);
+                if (elements.directionalValue) elements.directionalValue.textContent = value.toFixed(2);
             });
-        } else {
-            console.error('المان directional-intensity یافت نشد');
         }
         
         // کنترل موقعیت X نور
-        const lightPositionX = document.getElementById('light-position-x');
-        if (lightPositionX) {
-            console.log('المان light-position-x یافت شد');
-            lightPositionX.addEventListener('input', function(e) {
+        if (elements.lightPositionX) {
+            elements.lightPositionX.addEventListener('input', function(e) {
                 if (!directionalLight) {
                     console.error('متغیر directionalLight تعریف نشده است');
                     return;
                 }
                 const value = parseFloat(e.target.value);
                 directionalLight.position.x = value;
-                const lightXValue = document.getElementById('light-x-value');
-                if (lightXValue) lightXValue.textContent = value.toFixed(1);
+                if (elements.lightXValue) elements.lightXValue.textContent = value.toFixed(1);
             });
-        } else {
-            console.error('المان light-position-x یافت نشد');
         }
         
         // کنترل موقعیت Y نور
-        const lightPositionY = document.getElementById('light-position-y');
-        if (lightPositionY) {
-            console.log('المان light-position-y یافت شد');
-            lightPositionY.addEventListener('input', function(e) {
+        if (elements.lightPositionY) {
+            elements.lightPositionY.addEventListener('input', function(e) {
                 if (!directionalLight) {
                     console.error('متغیر directionalLight تعریف نشده است');
                     return;
                 }
                 const value = parseFloat(e.target.value);
                 directionalLight.position.y = value;
-                const lightYValue = document.getElementById('light-y-value');
-                if (lightYValue) lightYValue.textContent = value.toFixed(1);
+                if (elements.lightYValue) elements.lightYValue.textContent = value.toFixed(1);
             });
-        } else {
-            console.error('المان light-position-y یافت نشد');
         }
         
         // کنترل موقعیت Z نور
-        const lightPositionZ = document.getElementById('light-position-z');
-        if (lightPositionZ) {
-            console.log('المان light-position-z یافت شد');
-            lightPositionZ.addEventListener('input', function(e) {
+        if (elements.lightPositionZ) {
+            elements.lightPositionZ.addEventListener('input', function(e) {
                 if (!directionalLight) {
                     console.error('متغیر directionalLight تعریف نشده است');
                     return;
                 }
                 const value = parseFloat(e.target.value);
                 directionalLight.position.z = value;
-                const lightZValue = document.getElementById('light-z-value');
-                if (lightZValue) lightZValue.textContent = value.toFixed(1);
+                if (elements.lightZValue) elements.lightZValue.textContent = value.toFixed(1);
             });
-        } else {
-            console.error('المان light-position-z یافت نشد');
         }
         
         // کنترل رنگ نور
@@ -397,16 +399,6 @@ function setupLightingControls() {
             });
         } else {
             console.error('المان‌های toggle-button[data-color] یافت نشد');
-        }
-        
-        // نمایش پنل نور پس از تنظیم کنترل‌ها
-        const lightingPanel = document.getElementById('lighting-panel');
-        if (lightingPanel) {
-            console.log('المان lighting-panel یافت شد');
-            // پنل را مخفی نگه می‌داریم تا با دکمه نمایش داده شود
-            lightingPanel.style.display = 'none';
-        } else {
-            console.error('المان lighting-panel یافت نشد');
         }
         
         console.log('تنظیم کنترل‌های نور با موفقیت انجام شد');
@@ -450,9 +442,19 @@ window.addEventListener('offline', function() {
     console.log('وضعیت: آفلاین - ممکن است بارگذاری مدل‌های آزمایشی کار نکند');
 });
 
-// راه‌اندازی
-initScene();
-animate();
+// راه‌اندازی با بررسی document آماده
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initScene);
+} else {
+    initScene();
+}
 
-// جایگزینی پیام خوشامدگویی
+// انیمیشن با بررسی وجود controls
+function animate() {
+    requestAnimationFrame(animate);
+    if (controls) controls.update();
+    if (renderer && scene && camera) renderer.render(scene, camera);
+}
+
+// پیام خوشامدگویی در کنسول
 console.log('نمایشگر مدل‌های GLTF/GLB آماده است. از منوی کناری یک مدل انتخاب کنید.');
