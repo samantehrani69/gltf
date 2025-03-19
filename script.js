@@ -469,26 +469,48 @@ function loadModelsList() {
     // نمایش پیام بارگذاری
     modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">در حال بارگذاری مدل‌ها...</div>';
     
-    // لیست مدل‌ها به صورت ثابت (hard-coded) براساس فایل‌هایی که در پوشه models وجود دارد
-    const models = [
-        { name: 'مکعب ساده', file: 'cube.glb', description: 'یک مکعب سه بعدی ساده' },
-        { name: 'کره', file: 'sphere.glb', description: 'یک کره سه بعدی ساده' },
-        { name: 'استوانه', file: 'cylinder.glb', description: 'یک استوانه سه بعدی ساده' },
-        { name: 'مخروط', file: 'cone.glb', description: 'یک مخروط سه بعدی ساده' },
-        { name: 'حلقه', file: 'torus.glb', description: 'یک حلقه سه بعدی ساده' }
-    ];
-    
-    // پاک کردن لیست قبلی
-    modelsList.innerHTML = '';
-    
-    try {
-        // اضافه کردن مدل‌ها به لیست
-        if (models && models.length > 0) {
-            models.forEach(model => {
+    // بررسی‌ خودکار فایل‌های GLB و GLTF در پوشه models
+    fetch('models/')
+        .then(response => response.text())
+        .then(html => {
+            // استفاده از پارسر DOM برای استخراج لینک‌ها
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const links = Array.from(doc.querySelectorAll('a'));
+            
+            // فیلتر کردن فقط فایل‌های GLB و GLTF
+            const modelFiles = links
+                .map(link => link.href)
+                .filter(href => href.toLowerCase().endsWith('.glb') || href.toLowerCase().endsWith('.gltf'))
+                .map(href => {
+                    const url = new URL(href);
+                    const filename = url.pathname.split('/').pop();
+                    return {
+                        name: filename,
+                        file: filename,
+                        url: href
+                    };
+                });
+            
+            // بررسی وجود فایل مدل
+            if (modelFiles.length === 0) {
+                modelsList.innerHTML = `
+                    <div style="text-align: center; padding: 10px; color: #666;">
+                        هیچ فایل GLB یا GLTF در پوشه models یافت نشد.<br>
+                        <small>لطفاً فایل‌های سه‌بعدی خود را در پوشه models قرار دهید.</small>
+                    </div>`;
+                console.warn('هیچ فایل GLB یا GLTF در پوشه models یافت نشد');
+                return;
+            }
+            
+            // پاک کردن لیست قبلی
+            modelsList.innerHTML = '';
+            
+            // اضافه کردن مدل‌ها به لیست
+            modelFiles.forEach(model => {
                 const link = document.createElement('a');
                 link.className = 'model-link';
                 link.textContent = model.name;
-                link.title = model.description || '';
                 
                 // اضافه کردن رویداد کلیک
                 link.addEventListener('click', function() {
@@ -510,18 +532,84 @@ function loadModelsList() {
                 modelsList.appendChild(link);
             });
             
-            console.log(`${models.length} مدل به لیست اضافه شد.`);
-        } else {
-            modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">هیچ مدلی یافت نشد</div>';
-            console.warn('هیچ مدلی برای نمایش وجود ندارد');
-        }
+            console.log(`${modelFiles.length} مدل یافت شد و در لیست نمایش داده شد.`);
+        })
+        .catch(error => {
+            console.error('خطا در اسکن پوشه models:', error);
+            
+            // برنامه نمی‌تواند فایل‌ها را اسکن کند، پس یک پیام مناسب نمایش می‌دهیم
+            modelsList.innerHTML = `
+                <div style="text-align: center; padding: 10px; color: #d32f2f;">
+                    خطا در دسترسی به پوشه models<br>
+                    <small>برای استفاده از این قابلیت، صفحه باید از طریق یک سرور وب میزبانی شود.</small>
+                </div>
+                <div style="text-align: center; margin-top: 15px;">
+                    <button id="add-model-button" style="padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        افزودن مدل جدید
+                    </button>
+                </div>`;
+                
+            // اضافه کردن رویداد برای دکمه آپلود
+            const uploadBtn = document.getElementById('add-model-button');
+            if (uploadBtn) {
+                uploadBtn.addEventListener('click', function() {
+                    // ایجاد input برای انتخاب فایل
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.accept = '.glb,.gltf';
+                    
+                    fileInput.addEventListener('change', function(event) {
+                        const file = event.target.files[0];
+                        if (file) {
+                            loadModel(file);
+                        }
+                    });
+                    
+                    // شبیه‌سازی کلیک روی input
+                    fileInput.click();
+                });
+            }
+        });
+}
+
+// بهبود تابع setupOrbitControls برای اطمینان از درست کار کردن چرخش و زوم
+function setupOrbitControls() {
+    if (!camera || !renderer || !renderer.domElement) {
+        console.error('camera یا renderer موجود نیست');
+        return;
+    }
+    
+    try {
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        
+        // تنظیمات برای چرخش بهتر
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        
+        // تنظیمات زوم
+        controls.enableZoom = true;
+        controls.zoomSpeed = 1.0;
+        controls.minDistance = 0.5;
+        controls.maxDistance = 10;
+        
+        // فعال کردن چرخش
+        controls.enableRotate = true;
+        controls.rotateSpeed = 1.0;
+        
+        // تنظیمات پن (جا به جایی)
+        controls.enablePan = true;
+        controls.screenSpacePanning = true;
+        
+        // به‌روزرسانی اولیه
+        controls.update();
+        
+        console.log('تنظیمات چرخش و زوم فعال شد');
     } catch (error) {
-        console.error('خطا در بارگذاری لیست مدل‌ها:', error);
-        modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #d32f2f;">خطا در بارگذاری لیست مدل‌ها</div>';
+        console.error('خطا در تنظیم کنترل‌های چرخش و زوم:', error);
     }
 }
 
-// انتساب تابع به window برای دسترسی از بیرون
+// انتساب تابع‌ها به window برای دسترسی از بیرون
 window.loadModelsList = loadModelsList;
 window.initScene = initScene;
 window.animate = animate;
