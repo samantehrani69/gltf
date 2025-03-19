@@ -1,0 +1,17 @@
+[
+  {
+    "name": "مکعب ساده",
+    "file": "cube.glb",
+    "description": "یک مکعب سه بعدی ساده"
+  },
+  {
+    "name": "کره",
+    "file": "sphere.glb",
+    "description": "یک کره سه بعدی ساده"
+  },
+  {
+    "name": "استوانه",
+    "file": "cylinder.glb",
+    "description": "یک استوانه سه بعدی ساده"
+  }
+]
