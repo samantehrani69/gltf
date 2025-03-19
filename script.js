@@ -206,6 +206,7 @@ function loadModelURL(url) {
         model = null;
     }
 
+    // بررسی موجود بودن loader
     if (typeof THREE.GLTFLoader === 'undefined') {
         console.error('GLTFLoader بارگذاری نشده است');
         showError('خطا در بارگذاری کتابخانه GLTFLoader');
@@ -215,7 +216,8 @@ function loadModelURL(url) {
     const loader = new THREE.GLTFLoader();
     console.log('بارگذاری مدل از:', url);
 
-    loader.load(url, 
+    loader.load(
+        url,
         function(gltf) {
             try {
                 model = gltf.scene;

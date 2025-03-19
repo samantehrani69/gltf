@@ -119,6 +119,9 @@
             <div class="sidebar" id="sidebar-models">
                 <h3>مدل‌های ذخیره‌شده</h3>
                 <!-- فایل‌های موجود در پوشه models به صورت داینامیک اینجا اضافه می‌شوند -->
+                <!-- فایل‌های داینامیک از GitHub API -->
+                <!-- برای اطمینان، یک گزینه ثابت برای فایل نمونه -->
+                <span class="model-link" onclick="loadModelURL('models/sample.glb')">sample.glb</span>
             </div>
         </div>
         <div id="error-info"></div>
@@ -167,6 +170,11 @@
         }
 
         window.addEventListener('DOMContentLoaded', fetchModelsList);
+
+        // در صورت بروز خطا در فایل یا مسیر
+        function handleNotFoundPath() {
+            console.error('مدل پیدا نشد یا مشکل دسترسی وجود دارد.');
+        }
     </script>
 </body>
 </html>
