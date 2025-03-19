@@ -415,17 +415,20 @@ function setupLightingControls() {
     }
 }
 
-// تنظیم گوش‌دهنده رویداد برای دکمه آپلود فایل
-document.getElementById('file-input').addEventListener('change', function(event) {
-    const file = event.target.files[0];
-    if (file) {
-        loadModel(file);
-    }
-});
-
 // تنظیم گوش‌دهنده برای نمایش یا مخفی کردن پنل نور در زمان‌های خاص
 window.addEventListener('load', function() {
+    // اطمینان از وجود المان‌های ضروری
     console.log('صفحه کاملاً بارگذاری شد');
+    
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) {
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                loadModel(file);
+            }
+        });
+    }
     
     // نمایش پنل نور با کلیک روی دکمه
     const toggleButton = document.getElementById('toggle-lighting-panel');

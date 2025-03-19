@@ -20,30 +20,14 @@
         }
         #model-viewer {
             width: 100%;
-            height: 85vh;
+            height: 100vh; /* تغییر اندازه به کل ارتفاع صفحه بجای 85vh */
             background-color: #e3e3e3;
             position: relative;
             border-radius: 5px;
             box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
         }
-        #controls {
-            display: none; /* مخفی کردن بجای حذف کامل استایل */
-        }
-        .file-input {
-            background: linear-gradient(to bottom, #4CAF50, #3e9142);
-            color: white;
-            padding: 12px 18px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 0 10px;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        .file-input:hover {
-            background: linear-gradient(to bottom, #3e9142, #2e8132);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        #controls, .file-input {
+            display: none;
         }
         #loading {
             position: absolute;
@@ -432,6 +416,17 @@
             } else {
                 panel.style.display = 'none';
                 this.title = 'نمایش تنظیمات نور';
+            }
+        });
+
+        // اضافه کردن مدیریت خطا برای تمام فراخوانی‌های اسکریپت
+        window.addEventListener('error', function(e) {
+            console.error('خطای جاوااسکریپت:', e.message);
+            // نمایش خطا به کاربر
+            const errorInfo = document.getElementById('error-info');
+            if (errorInfo) {
+                errorInfo.textContent = 'خطا در اجرای برنامه، لطفاً صفحه را بارگذاری مجدد کنید.';
+                errorInfo.style.display = 'block';
             }
         });
     </script>
