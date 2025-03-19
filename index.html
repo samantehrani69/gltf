@@ -644,9 +644,15 @@
         const script = document.createElement('script');
         script.src = 'script.js';
         script.onload = function() {
-            // فراخوانی loadModelsList پس از بارگذاری اسکریپت
+            console.log("اسکریپت اصلی با موفقیت بارگذاری شد");
+            // فورا تابع loadModelsList را فراخوانی می‌کنیم
             if (typeof loadModelsList === 'function') {
-                setTimeout(loadModelsList, 100);
+                loadModelsList();
+                console.log("فراخوانی تابع loadModelsList انجام شد");
+            } else {
+                console.error("تابع loadModelsList یافت نشد");
+                document.getElementById('error-info').textContent = "خطا: تابع loadModelsList یافت نشد";
+                document.getElementById('error-info').style.display = 'block';
             }
         };
         document.body.appendChild(script);
