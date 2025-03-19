@@ -449,9 +449,13 @@ window.addEventListener('offline', function() {
 
 // راه‌اندازی با بررسی document آماده
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initScene);
+    document.addEventListener('DOMContentLoaded', () => {
+        initScene();
+        animate();
+    });
 } else {
     initScene();
+    animate();
 }
 
 // انیمیشن با بررسی وجود controls
