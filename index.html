@@ -641,28 +641,51 @@
     // فراخوانی مستقیم تابع بررسی و بارگذاری اسکریپت اصلی در صورت موفقیت
     if (checkLibraries()) {
         console.log("همه کتابخانه‌ها با موفقیت بارگذاری شدند. اسکریپت اصلی را بارگذاری می‌کنیم...");
-        const script = document.createElement('script');
-        script.src = 'script.js';
-        script.onload = function() {
-            console.log("اسکریپت اصلی با موفقیت بارگذاری شد");
-            // راه‌اندازی صحنه و لیست مدل‌ها
-            if (typeof initScene === 'function') {
-                initScene();
-                animate(); // شروع حلقه انیمیشن
+        
+        // بارگذاری دقیق اسکریپت اصلی با یک مکانیزم بهتر
+        fetch('script.js')
+            .then(response => response.text())
+            .then(scriptText => {
+                // جایگزینی کلمات "اگر" با "if" در کد اسکریپت
+                scriptText = scriptText.replace(/اگر\s*\(/g, 'if (');
                 
-                // بارگذاری لیست مدل‌ها
-                if (typeof loadModelsList === 'function') {
-                    setTimeout(loadModelsList, 500);
-                } else {
-                    console.error("تابع loadModelsList یافت نشد");
-                }
-            } else {
-                console.error("تابع initScene یافت نشد");
-                document.getElementById('error-info').textContent = "خطا: تابع initScene یافت نشد";
+                // ایجاد اسکریپت و اضافه کردن محتوا
+                const script = document.createElement('script');
+                script.textContent = scriptText;
+                
+                // تعریف رویداد موفقیت
+                script.onload = function() {
+                    console.log("اسکریپت اصلی با موفقیت بارگذاری شد");
+                    
+                    // راه‌اندازی صحنه
+                    if (typeof initScene === 'function') {
+                        initScene();
+                        animate();
+                        
+                        // فراخوانی مستقیم loadModelsList
+                        console.log("فراخوانی تابع loadModelsList");
+                        if (typeof loadModelsList === 'function') {
+                            loadModelsList();
+                        } else {
+                            console.error("تابع loadModelsList یافت نشد");
+                            document.getElementById('error-info').textContent = "خطا: تابع loadModelsList یافت نشد";
+                            document.getElementById('error-info').style.display = 'block';
+                        }
+                    } else {
+                        console.error("تابع initScene یافت نشد");
+                        document.getElementById('error-info').textContent = "خطا: تابع initScene یافت نشد";
+                        document.getElementById('error-info').style.display = 'block';
+                    }
+                };
+                
+                // اضافه کردن اسکریپت به صفحه
+                document.body.appendChild(script);
+            })
+            .catch(error => {
+                console.error("خطا در بارگذاری اسکریپت اصلی:", error);
+                document.getElementById('error-info').textContent = "خطا در بارگذاری اسکریپت اصلی";
                 document.getElementById('error-info').style.display = 'block';
-            }
-        };
-        document.body.appendChild(script);
+            });
     } else {
         document.getElementById('error-info').textContent = "خطا در بارگذاری کتابخانه‌های مورد نیاز";
         document.getElementById('error-info').style.display = 'block';

@@ -162,7 +162,7 @@ function loadModel(file) {
                     // مقیاس‌بندی مدل برای اندازه مناسب
                     const size = box.getSize(new THREE.Vector3());
                     const maxSize = Math.max(size.x, size.y, size.z);
-                    اگر (maxSize > 0) {
+                    if (maxSize > 0) {
                         const scale = 3 / maxSize;
                         model.scale.set(scale, scale, scale);
                     }
@@ -182,7 +182,7 @@ function loadModel(file) {
             }, 
             // پیشرفت بارگذاری
             function(xhr) {
-                اگر (xhr.lengthComputable && xhr.total > 0) {
+                if (xhr.lengthComputable && xhr.total > 0) {
                     const percent = (xhr.loaded / xhr.total * 100).toFixed(0);
                     loadingElement.textContent = `در حال بارگذاری: ${percent}%`;
                     console.log(`پیشرفت بارگذاری: ${percent}%`);
@@ -240,7 +240,7 @@ function loadModelURL(url) {
                 model.position.z -= center.z;
                 const size = box.getSize(new THREE.Vector3());
                 const maxSize = Math.max(size.x, size.y, size.z);
-                اگر (maxSize > 0) {
+                if (maxSize > 0) {
                     const scale = 3 / maxSize;
                     model.scale.set(scale, scale, scale);
                 }
@@ -254,7 +254,7 @@ function loadModelURL(url) {
             }
         },
         function(xhr) {
-            اگر (xhr.lengthComputable && xhr.total > 0) {
+            if (xhr.lengthComputable && xhr.total > 0) {
                 const percent = (xhr.loaded / xhr.total * 100).toFixed(0);
                 loadingElement.textContent = `در حال بارگذاری: ${percent}%`;
             } else {
@@ -307,73 +307,73 @@ function setupLightingControls() {
         }
         
         // کنترل شدت نور محیطی
-        اگر (elements.ambientIntensity) {
+        if (elements.ambientIntensity) {
             elements.ambientIntensity.addEventListener('input', function(e) {
-                اگر (!ambientLight) {
+                if (!ambientLight) {
                     console.error('متغیر ambientLight تعریف نشده است');
                     return;
                 }
                 const value = parseFloat(e.target.value);
                 ambientLight.intensity = value;
-                اگر (elements.ambientValue) elements.ambientValue.textContent = value.toFixed(2);
+                if (elements.ambientValue) elements.ambientValue.textContent = value.toFixed(2);
             });
         }
         
         // کنترل شدت نور جهت‌دار
-        اگر (elements.directionalIntensity) {
+        if (elements.directionalIntensity) {
             elements.directionalIntensity.addEventListener('input', function(e) {
-                اگر (!directionalLight) {
+                if (!directionalLight) {
                     console.error('متغیر directionalLight تعریف نشده است');
                     return;
                 }
                 const value = parseFloat(e.target.value);
                 directionalLight.intensity = value;
-                اگر (elements.directionalValue) elements.directionalValue.textContent = value.toFixed(2);
+                if (elements.directionalValue) elements.directionalValue.textContent = value.toFixed(2);
             });
         }
         
         // کنترل موقعیت X نور
-        اگر (elements.lightPositionX) {
+        if (elements.lightPositionX) {
             elements.lightPositionX.addEventListener('input', function(e) {
-                اگر (!directionalLight) {
+                if (!directionalLight) {
                     console.error('متغیر directionalLight تعریف نشده است');
                     return;
                 }
                 const value = parseFloat(e.target.value);
                 directionalLight.position.x = value;
-                اگر (elements.lightXValue) elements.lightXValue.textContent = value.toFixed(1);
+                if (elements.lightXValue) elements.lightXValue.textContent = value.toFixed(1);
             });
         }
         
         // کنترل موقعیت Y نور
-        اگر (elements.lightPositionY) {
+        if (elements.lightPositionY) {
             elements.lightPositionY.addEventListener('input', function(e) {
-                اگر (!directionalLight) {
+                if (!directionalLight) {
                     console.error('متغیر directionalLight تعریف نشده است');
                     return;
                 }
                 const value = parseFloat(e.target.value);
                 directionalLight.position.y = value;
-                اگر (elements.lightYValue) elements.lightYValue.textContent = value.toFixed(1);
+                if (elements.lightYValue) elements.lightYValue.textContent = value.toFixed(1);
             });
         }
         
         // کنترل موقعیت Z نور
-        اگر (elements.lightPositionZ) {
+        if (elements.lightPositionZ) {
             elements.lightPositionZ.addEventListener('input', function(e) {
-                اگر (!directionalLight) {
+                if (!directionalLight) {
                     console.error('متغیر directionalLight تعریف نشده است');
                     return;
                 }
                 const value = parseFloat(e.target.value);
                 directionalLight.position.z = value;
-                اگر (elements.lightZValue) elements.lightZValue.textContent به value.toFixed(1);
+                if (elements.lightZValue) elements.lightZValue.textContent = value.toFixed(1);
             });
         }
         
         // کنترل رنگ نور
         const colorButtons = document.querySelectorAll('.toggle-button[data-color]');
-        اگر (colorButtons.length > 0) {
+        if (colorButtons.length > 0) {
             colorButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     // حذف کلاس active از همه دکمه‌ها
@@ -404,10 +404,10 @@ window.addEventListener('load', function() {
     // حذف دستور مربوط به file-input
     /* 
     const fileInput = document.getElementById('file-input');
-    اگر (fileInput) {
+    if (fileInput) {
         fileInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
-            اگر (file) {
+            if (file) {
                 loadModel(file);
             }
         });
@@ -417,7 +417,7 @@ window.addEventListener('load', function() {
     // نمایش پنل نور با کلیک روی دکمه
     const toggleButton = document.getElementById('toggle-lighting-panel');
     const lightingPanel = document.getElementById('lighting-panel');
-    اگر (toggleButton && lightingPanel) {
+    if (toggleButton && lightingPanel) {
         toggleButton.addEventListener('click', function() {
             lightingPanel.style.display =
                 (lightingPanel.style.display === 'none') ? 'block' : 'none';
@@ -438,7 +438,7 @@ window.addEventListener('offline', function() {
 });
 
 // راه‌اندازی با بررسی document آماده
-اگر (document.readyState === 'loading') {
+if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initScene();
         animate();
@@ -451,130 +451,53 @@ window.addEventListener('offline', function() {
 // انیمیشن با بررسی وجود controls
 function animate() {
     requestAnimationFrame(animate);
-    اگر (controls) controls.update();
-    اگر (renderer && scene && camera) renderer.render(scene, camera);
+    if (controls) controls.update();
+    if (renderer && scene && camera) renderer.render(scene, camera);
 }
 
 // پیام خوشامدگویی در کنسول
 console.log('نمایشگر مدل‌های GLTF/GLB آماده است. از منوی کناری یک مدل انتخاب کنید.');
 
-// تابع جدید برای بارگذاری لیست مدل‌ها - اسکن همه فایل‌ها از پوشه models
+// تابع جدید برای بارگذاری لیست مدل‌ها - بدون استفاده از API گیت‌هاب
 function loadModelsList() {
     const modelsList = document.getElementById('models-list');
-    if (!modelsList) return;
+    if (!modelsList) {
+        console.error('المان models-list یافت نشد');
+        return;
+    }
     
     // نمایش پیام بارگذاری
     modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">در حال اسکن فایل‌های مدل...</div>';
     
-    // استفاده از API گیت‌هاب برای دریافت همه فایل‌های موجود در پوشه models
-    fetch('https://api.github.com/repos/samantehrani69/gltf/contents/models')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`خطا در دریافت لیست فایل‌ها: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(files => {
-            // فیلتر کردن فقط فایل‌های GLB و GLTF
-            const modelFiles = files.filter(file => 
-                file.name.toLowerCase().endsWith('.glb') || 
-                file.name.toLowerCase().endsWith('.gltf')
-            );
-            
-            // بررسی وجود فایل مدل
-            if (modelFiles.length === 0) {
-                modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">هیچ مدلی یافت نشد</div>';
-                return;
-            }
-            
-            // پاک کردن لیست قبلی
-            modelsList.innerHTML = '';
-            
-            // اضافه کردن هر فایل به لیست
-            modelFiles.forEach(file => {
-                const link = document.createElement('a');
-                link.className = 'model-link';
-                link.textContent = file.name;
-                link.addEventListener('click', () => {
-                    // انتخاب این مدل در لیست
-                    document.querySelectorAll('.model-link').forEach(item => {
-                        item.style.fontWeight = 'normal';
-                    });
-                    link.style.fontWeight = 'bold';
-                    
-                    // بارگذاری مدل با استفاده از آدرس مستقیم
-                    loadModelURL(file.download_url);
-                });
-                modelsList.appendChild(link);
-            });
-            
-            console.log(`${modelFiles.length} مدل یافت شد و در لیست نمایش داده شد.`);
-        })
-        .catch(error => {
-            console.error('خطا در اسکن فایل‌های مدل:', error);
-            
-            // نمایش یک لیست پیش‌فرض از فایل‌های محلی در صورت خطا
-            const localFiles = [
-                { name: 'cube.glb', path: 'models/cube.glb' },
-                { name: 'sphere.glb', path: 'models/sphere.glb' },
-                { name: 'cylinder.glb', path: 'models/cylinder.glb' },
-                { name: 'cone.glb', path: 'models/cone.glb' },
-                { name: 'torus.glb', path: 'models/torus.glb' }
-            ];
-            
-            modelsList.innerHTML = '';
-            localFiles.forEach(file => {
-                const link = document.createElement('a');
-                link.className = 'model-link';
-                link.textContent = file.name;
-                link.addEventListener('click', () => {
-                    document.querySelectorAll('.model-link').forEach(item => {
-                        item.style.fontWeight = 'normal';
-                    });
-                    link.style.fontWeight = 'bold';
-                    
-                    loadModelURL(file.path);
-                });
-                modelsList.appendChild(link);
-            });
-        });
-}
-
-// بهبود تنظیمات OrbitControls برای چرخش و زوم بهتر
-function setupOrbitControls() {
-    if (!camera || !renderer || !renderer.domElement) {
-        console.error('camera یا renderer موجود نیست');
-        return;
-    }
+    // لیست مدل‌ها به صورت ثابت (hard-coded)
+    const models = [
+        { name: 'مکعب', file: 'cube.glb' },
+        { name: 'کره', file: 'sphere.glb' },
+        { name: 'استوانه', file: 'cylinder.glb' },
+        { name: 'مخروط', file: 'cone.glb' },
+        { name: 'حلقه', file: 'torus.glb' }
+    ];
     
-    try {
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        
-        // تنظیمات برای چرخش روان‌تر
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        
-        // فعال کردن زوم
-        controls.enableZoom = true;
-        controls.zoomSpeed = 1.0;
-        
-        // محدودیت‌های زوم
-        controls.minDistance = 1;
-        controls.maxDistance = 20;
-        
-        // فعال کردن چرخش
-        controls.enableRotate = true;
-        controls.rotateSpeed = 1.0;
-        
-        // فعال کردن پن (جابجایی)
-        controls.enablePan = true;
-        controls.screenSpacePanning = true;
-        
-        // به‌روزرسانی اولیه
-        controls.update();
-        
-        console.log('کنترل‌های چرخش و زوم با موفقیت تنظیم شدند');
-    } catch (e) {
-        console.error('خطا در تنظیم کنترل‌های چرخش و زوم:', e);
-    }
+    // پاک کردن لیست قبلی
+    modelsList.innerHTML = '';
+    
+    // اضافه کردن مدل‌ها به لیست
+    models.forEach(model => {
+        const link = document.createElement('a');
+        link.className = 'model-link';
+        link.textContent = model.name;
+        link.addEventListener('click', () => {
+            // انتخاب این مدل در لیست
+            document.querySelectorAll('.model-link').forEach(item => {
+                item.style.fontWeight = 'normal';
+            });
+            link.style.fontWeight = 'bold';
+            
+            // بارگذاری مدل
+            loadModelURL(`models/${model.file}`);
+        });
+        modelsList.appendChild(link);
+    });
+    
+    console.log(`${models.length} مدل به لیست اضافه شد.`);
 }
