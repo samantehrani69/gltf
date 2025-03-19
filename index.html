@@ -314,10 +314,123 @@
         <button id="toggle-lighting-panel" title="تنظیمات نور">💡</button>
     </div>
 
-    <!-- کتابخانه‌های Three.js - استفاده از یک نسخه جدیدتر و از یک منبع واحد -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- جایگزینی کتابخانه‌های Three.js با روش مطمئن‌تر -->
+    <!-- حذف اسکریپت‌های قبلی Three.js -->
+
+    <!-- کتابخانه اصلی Three.js -->
+    <script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
+
+    <!-- استفاده از کتابخانه‌های اضافی با استفاده از CDN unpkg که روی دسترسی به ماژول‌ها تمرکز دارد -->
+    <script src="https://unpkg.com/three@0.149.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/three@0.149.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <!-- اسکریپت بررسی بارگذاری کتابخانه‌ها -->
+    <script>
+        // تابع بررسی وجود کتابخانه‌های مورد نیاز
+        function checkLibraries() {
+            console.log("بررسی کتابخانه‌ها...");
+            
+            let errors = [];
+            
+            // بررسی وجود کتابخانه اصلی Three.js
+            if (typeof THREE === 'undefined') {
+                errors.push("کتابخانه THREE.js بارگذاری نشده است");
+            } else {
+                console.log("THREE.js نسخه:", THREE.REVISION, "بارگذاری شد");
+                
+                // بررسی وجود OrbitControls
+                if (typeof THREE.OrbitControls === 'undefined') {
+                    errors.push("کتابخانه OrbitControls بارگذاری نشده است");
+                    console.error("THREE.OrbitControls is:", typeof THREE.OrbitControls);
+                    
+                    // بررسی کلاس‌های اصلی THREE
+                    console.log("کلاس‌های THREE در دسترس:", Object.keys(THREE).filter(k => k[0] === k[0].toUpperCase()).join(", "));
+                } else {
+                    console.log("OrbitControls بارگذاری شد");
+                }
+                
+                // بررسی وجود GLTFLoader
+                if (typeof THREE.GLTFLoader === 'undefined') {
+                    errors.push("کتابخانه GLTFLoader بارگذاری نشده است");
+                } else {
+                    console.log("GLTFLoader بارگذاری شد");
+                }
+            }
+            
+            if (errors.length > 0) {
+                const errorMessage = errors.join(" | ");
+                document.getElementById('error-info').textContent = errorMessage;
+                document.getElementById('error-info').style.display = 'block';
+                console.error(errorMessage);
+                return false;
+            }
+            
+            console.log("همه کتابخانه‌ها بارگذاری شدند");
+            return true;
+        }
+        
+        // بررسی کتابخانه‌ها پس از بارگذاری کامل صفحه
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log("صفحه بارگذاری شد، در حال بررسی کتابخانه‌ها...");
+            
+            // کمی صبر می‌کنیم تا اسکریپت‌ها بارگذاری شوند
+            setTimeout(function() {
+                if (checkLibraries()) {
+                    console.log("در حال بارگذاری اسکریپت اصلی...");
+                    loadMainScript();
+                } else {
+                    console.error("خطا در بارگذاری کتابخانه‌ها");
+                }
+            }, 500);
+        });
+        
+        // بارگذاری اسکریپت اصلی
+        function loadMainScript() {
+            // ایجاد المان اسکریپت جدید
+            const script = document.createElement('script');
+            script.src = 'script.js';
+            script.onload = function() {
+                console.log("اسکریپت اصلی با موفقیت بارگذاری شد");
+            };
+            script.onerror = function() {
+                console.error("خطا در بارگذاری اسکریپت اصلی");
+                document.getElementById('error-info').textContent = "خطا در بارگذاری اسکریپت اصلی";
+                document.getElementById('error-info').style.display = 'block';
+            };
+            
+            // افزودن به انتهای body
+            document.body.appendChild(script);
+        }
+    </script>
+
+    <!-- روش جایگزین: اگر روش قبلی کار نکرد، اسکریپت‌ها را مستقیماً داخل فایل HTML قرار می‌دهیم -->
+    <script>
+        // در صورت عدم بارگذاری OrbitControls، یک کلاس ساده شبیه‌سازی می‌کنیم
+        window.addEventListener('load', function() {
+            if (typeof THREE !== 'undefined' && typeof THREE.OrbitControls === 'undefined') {
+                console.warn("بارگذاری دستی OrbitControls...");
+                
+                // تعریف ساختار اولیه OrbitControls برای جلوگیری از خطا
+                THREE.OrbitControls = function(camera, domElement) {
+                    this.object = camera;
+                    this.domElement = domElement;
+                    
+                    // پارامترهای اصلی
+                    this.enabled = true;
+                    this.enableDamping = false;
+                    this.dampingFactor = 0.05;
+                    this.screenSpacePanning = false;
+                    this.minDistance = 0;
+                    this.maxDistance = Infinity;
+                    
+                    // متد به‌روزرسانی خالی
+                    this.update = function() {};
+                    
+                    console.warn("OrbitControls به صورت ساده‌شده بارگذاری شد - ممکن است برخی قابلیت‌ها کار نکنند");
+                };
+            }
+        });
+    </script>
 
     <!-- اسکریپت های کمکی با کد ساده‌تر -->
     <script>
