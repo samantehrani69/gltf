@@ -458,7 +458,7 @@ function animate() {
 // پیام خوشامدگویی در کنسول
 console.log('نمایشگر مدل‌های GLTF/GLB آماده است. از منوی کناری یک مدل انتخاب کنید.');
 
-// رویکرد ساده‌تر برای بارگذاری لیست مدل‌ها از models folder
+// بهبود تابع بارگذاری لیست مدل‌ها با افزودن دکمه آپلود مستقیم
 function loadModelsList() {
     const modelsList = document.getElementById('models-list');
     if (!modelsList) {
@@ -466,59 +466,34 @@ function loadModelsList() {
         return;
     }
     
-    // نمایش پیام بارگذاری
-    modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">در حال بارگذاری مدل‌ها...</div>';
+    // نمایش دکمه آپلود مستقیم به جای فقط پیام "در حال بارگذاری"
+    modelsList.innerHTML = `
+        <div style="text-align: center; padding: 10px; color: #666;">
+            برای مشاهده مدل‌های سه‌بعدی خود، یک فایل GLB یا GLTF انتخاب کنید
+        </div>
+        <div style="text-align: center; margin: 15px 0;">
+            <button id="main-upload-button" style="padding: 10px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                انتخاب فایل سه‌بعدی
+            </button>
+        </div>
+    `;
     
-    // روش ساده‌تر با استفاده از فایل‌های GLB ثابت در پوشه models
-    const modelFiles = [
-        { name: 'مثال 1.glb', file: 'example1.glb' },
-        { name: 'مثال 2.glb', file: 'example2.glb' },
-        { name: 'مثال 3.glb', file: 'example3.glb' }
-    ];
-
-    // کد زیر مستقیماً فایل‌های موجود در پوشه models را جستجو می‌کند
-    // این روشی ساده‌تر و مطمئن‌تر است
-    const findModelsInFolder = () => {
-        return new Promise((resolve) => {
-            // لیست فایل‌های GLB/GLTF
-            const foundModels = [];
-            
-            // ابتدا تلاش برای بارگذاری فایل‌های شناخته شده
-            const knownModels = [
-                'cube.glb', 'sphere.glb', 'cylinder.glb', 'cone.glb', 'torus.glb', 
-                'example.glb', 'example1.glb', 'example2.glb', 'example3.glb',
-                'model.glb', 'model.gltf', 'test.glb', 'test.gltf'
-            ];
-            
-            // بررسی تک تک فایل‌های شناخته شده
-            const checkPromises = knownModels.map(filename => {
-                return new Promise((fileResolve) => {
-                    fetch(`models/${filename}`)
-                        .then(response => {
-                            if (response.ok) {
-                                foundModels.push({
-                                    name: filename,
-                                    file: filename,
-                                    url: `models/${filename}`
-                                });
-                            }
-                            fileResolve();
-                        })
-                        .catch(() => fileResolve());
-                });
-            });
-            
-            // پس از بررسی همه فایل‌ها، نتیجه را برمی‌گردانیم
-            Promise.all(checkPromises).then(() => resolve(foundModels));
+    // اضافه کردن رویداد برای دکمه آپلود اصلی
+    const mainUploadBtn = document.getElementById('main-upload-button');
+    if (mainUploadBtn) {
+        mainUploadBtn.addEventListener('click', function() {
+            openFileSelector();
         });
-    };
+    }
     
-    // اجرای جستجوی فایل‌ها
+    // جستجوی فایل‌های پیش‌فرض
     findModelsInFolder()
         .then(foundModels => {
             if (foundModels.length > 0) {
-                // پاک کردن لیست قبلی
-                modelsList.innerHTML = '';
+                // اگر فایل‌هایی یافت شد، آنها را نمایش می‌دهیم
+                const filesSection = document.createElement('div');
+                filesSection.innerHTML = '<h4 style="margin: 15px 0 5px; font-size: 14px; color: #555;">فایل‌های یافت شده:</h4>';
+                modelsList.appendChild(filesSection);
                 
                 // اضافه کردن مدل‌ها به لیست
                 foundModels.forEach(model => {
@@ -528,17 +503,14 @@ function loadModelsList() {
                     
                     // اضافه کردن رویداد کلیک
                     link.addEventListener('click', function() {
-                        // انتخاب این مدل در لیست
                         document.querySelectorAll('.model-link').forEach(item => {
                             item.style.fontWeight = 'normal';
                         });
                         link.style.fontWeight = 'bold';
                         
-                        // نمایش پیام بارگذاری
-                        document.getElementById('loading').style.display = 'block';
-                        document.getElementById('loading').textContent = 'در حال بارگذاری مدل...';
+                        loadingElement.style.display = 'block';
+                        loadingElement.textContent = 'در حال بارگذاری مدل...';
                         
-                        // بارگذاری مدل
                         console.log('بارگذاری مدل:', model.file);
                         loadModelURL(`models/${model.file}`);
                     });
@@ -547,72 +519,81 @@ function loadModelsList() {
                 });
                 
                 console.log(`${foundModels.length} مدل در پوشه models یافت شد.`);
-            } else {
-                // هیچ فایلی یافت نشد - نمایش دکمه آپلود
-                modelsList.innerHTML = `
-                    <div style="text-align: center; padding: 10px; color: #666;">
-                        هیچ فایل GLB یا GLTF در پوشه models یافت نشد.
-                    </div>
-                    <div style="text-align: center; margin-top: 15px;">
-                        <button id="add-model-button" style="padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                            افزودن مدل جدید
-                        </button>
-                    </div>`;
-                
-                // اضافه کردن رویداد برای دکمه آپلود
-                const uploadBtn = document.getElementById('add-model-button');
-                if (uploadBtn) {
-                    uploadBtn.addEventListener('click', function() {
-                        // ایجاد input برای انتخاب فایل
-                        const fileInput = document.createElement('input');
-                        fileInput.type = 'file';
-                        fileInput.accept = '.glb,.gltf';
-                        
-                        fileInput.addEventListener('change', function(event) {
-                            const file = event.target.files[0];
-                            if (file) {
-                                loadModel(file);
-                            }
-                        });
-                        
-                        // شبیه‌سازی کلیک روی input
-                        fileInput.click();
-                    });
-                }
-            }
-        })
-        .catch(error => {
-            console.error('خطا در جستجوی فایل‌های مدل:', error);
-            modelsList.innerHTML = `
-                <div style="text-align: center; padding: 10px; color: #d32f2f;">
-                    خطا در جستجوی فایل‌های مدل<br>
-                    <small>${error.message || 'خطای ناشناخته'}</small>
-                </div>
-                <div style="text-align: center; margin-top: 15px;">
-                    <button id="add-model-button" style="padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        افزودن مدل جدید
-                    </button>
-                </div>`;
-            
-            // اضافه کردن رویداد برای دکمه آپلود
-            const uploadBtn = document.getElementById('add-model-button');
-            if (uploadBtn) {
-                uploadBtn.addEventListener('click', function() {
-                    const fileInput = document.createElement('input');
-                    fileInput.type = 'file';
-                    fileInput.accept = '.glb,.gltf';
-                    
-                    fileInput.addEventListener('change', function(event) {
-                        const file = event.target.files[0];
-                        if (file) {
-                            loadModel(file);
-                        }
-                    });
-                    
-                    fileInput.click();
-                });
             }
         });
+}
+
+// تابع باز کردن انتخابگر فایل
+function openFileSelector() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.glb,.gltf';
+    
+    fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            // نمایش نام فایل انتخاب شده
+            const modelsList = document.getElementById('models-list');
+            if (modelsList) {
+                const selectedFileDiv = document.createElement('div');
+                selectedFileDiv.style.margin = '10px 0';
+                selectedFileDiv.style.padding = '8px';
+                selectedFileDiv.style.backgroundColor = '#e8f5e9';
+                selectedFileDiv.style.borderRadius = '4px';
+                selectedFileDiv.style.fontSize = '13px';
+                selectedFileDiv.innerHTML = `
+                    <div><strong>فایل انتخاب شده:</strong></div>
+                    <div style="margin-top: 5px;">${file.name}</div>
+                `;
+                
+                // پیدا کردن محل مناسب برای اضافه کردن
+                const firstLink = modelsList.querySelector('.model-link');
+                if (firstLink) {
+                    modelsList.insertBefore(selectedFileDiv, firstLink);
+                } else {
+                    modelsList.appendChild(selectedFileDiv);
+                }
+            }
+            
+            // بارگذاری مدل
+            loadModel(file);
+        }
+    });
+    
+    fileInput.click();
+}
+
+// کد زیر مستقیماً فایل‌های موجود در پوشه models را جستجو می‌کند
+function findModelsInFolder() {
+    return new Promise((resolve) => {
+        // لیست فایل‌های GLB/GLTF
+        const foundModels = [];
+        
+        // لیست گسترده‌تری از نام‌های احتمالی فایل
+        const knownModels = [
+            'cube.glb', 'sphere.glb', 'cylinder.glb', 'cone.glb', 'torus.glb', 
+            'box.glb', 'scene.glb', 'scene.gltf', 'model.glb', 'model.gltf',
+            'example.glb', 'example1.glb', 'example2.glb', 'example3.glb',
+            'test.glb', 'test.gltf', 'sample.glb', 'sample.gltf',
+            'asset.glb', 'asset.gltf', '3d.glb', '3d.gltf',
+            'object.glb', 'object.gltf', 'mesh.glb', 'mesh.gltf'
+        ];
+        
+        // بررسی تک تک فایل‌های شناخته شده با عملیات موازی
+        Promise.all(knownModels.map(filename => 
+            fetch(`models/${filename}`, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        foundModels.push({
+                            name: filename,
+                            file: filename,
+                            url: `models/${filename}`
+                        });
+                    }
+                })
+                .catch(() => {/* فایل وجود ندارد - ادامه می‌دهیم */})
+        )).then(() => resolve(foundModels));
+    });
 }
 
 // بهبود تابع setupOrbitControls برای اطمینان از درست کار کردن چرخش و زوم
