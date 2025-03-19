@@ -51,7 +51,7 @@ function initScene() {
         return;
     }
 
-    // افزودن نور به صحنه
+    // افزودن نور به صحنه - تعریف متغیرهای جهانی
     ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
 
@@ -82,8 +82,9 @@ function initScene() {
     // نمایش یک شکل ساده برای آزمایش صحنه
     addTestCube();
     
-    // تنظیم کنترل‌های نور
-    setupLightingControls();
+    // تنظیم کنترل‌های نور - این تابع با تاخیر فراخوانی می‌شود
+    // چون ممکن است المان‌های HTML هنوز آماده نباشند
+    setTimeout(setupLightingControls, 500);
 }
 
 // افزودن یک مکعب ساده برای آزمایش صحنه
@@ -280,62 +281,102 @@ function showError(message) {
     }, 3000);
 }
 
-// تنظیم کنترل‌های نور
+// تنظیم کنترل‌های نور - بررسی وجود المان‌ها قبل از اتصال event listener
 function setupLightingControls() {
+    console.log('تنظیم کنترل‌های نور...');
+    
     // کنترل شدت نور محیطی
-    document.getElementById('ambient-intensity').addEventListener('input', function(e) {
-        const value = parseFloat(e.target.value);
-        ambientLight.intensity = value;
-        document.getElementById('ambient-value').textContent = value.toFixed(2);
-    });
+    const ambientIntensity = document.getElementById('ambient-intensity');
+    if (ambientIntensity) {
+        ambientIntensity.addEventListener('input', function(e) {
+            const value = parseFloat(e.target.value);
+            ambientLight.intensity = value;
+            const ambientValue = document.getElementById('ambient-value');
+            if (ambientValue) ambientValue.textContent = value.toFixed(2);
+            console.log('تغییر شدت نور محیطی به:', value);
+        });
+    } else {
+        console.error('المان ambient-intensity یافت نشد');
+    }
     
     // کنترل شدت نور جهت‌دار
-    document.getElementById('directional-intensity').addEventListener('input', function(e) {
-        const value = parseFloat(e.target.value);
-        directionalLight.intensity = value;
-        document.getElementById('directional-value').textContent = value.toFixed(2);
-    });
+    const directionalIntensity = document.getElementById('directional-intensity');
+    if (directionalIntensity) {
+        directionalIntensity.addEventListener('input', function(e) {
+            const value = parseFloat(e.target.value);
+            directionalLight.intensity = value;
+            const directionalValue = document.getElementById('directional-value');
+            if (directionalValue) directionalValue.textContent = value.toFixed(2);
+            console.log('تغییر شدت نور جهت‌دار به:', value);
+        });
+    } else {
+        console.error('المان directional-intensity یافت نشد');
+    }
     
     // کنترل موقعیت X نور
-    document.getElementById('light-position-x').addEventListener('input', function(e) {
-        const value = parseFloat(e.target.value);
-        directionalLight.position.x = value;
-        document.getElementById('light-x-value').textContent = value.toFixed(1);
-        // اگر helper وجود دارد، آن را بروز کن
-        // if (helper) helper.update();
-    });
+    const lightPositionX = document.getElementById('light-position-x');
+    if (lightPositionX) {
+        lightPositionX.addEventListener('input', function(e) {
+            const value = parseFloat(e.target.value);
+            directionalLight.position.x = value;
+            const lightXValue = document.getElementById('light-x-value');
+            if (lightXValue) lightXValue.textContent = value.toFixed(1);
+            console.log('تغییر موقعیت X نور به:', value);
+        });
+    } else {
+        console.error('المان light-position-x یافت نشد');
+    }
     
     // کنترل موقعیت Y نور
-    document.getElementById('light-position-y').addEventListener('input', function(e) {
-        const value = parseFloat(e.target.value);
-        directionalLight.position.y = value;
-        document.getElementById('light-y-value').textContent = value.toFixed(1);
-        // if (helper) helper.update();
-    });
+    const lightPositionY = document.getElementById('light-position-y');
+    if (lightPositionY) {
+        lightPositionY.addEventListener('input', function(e) {
+            const value = parseFloat(e.target.value);
+            directionalLight.position.y = value;
+            const lightYValue = document.getElementById('light-y-value');
+            if (lightYValue) lightYValue.textContent = value.toFixed(1);
+            console.log('تغییر موقعیت Y نور به:', value);
+        });
+    } else {
+        console.error('المان light-position-y یافت نشد');
+    }
     
     // کنترل موقعیت Z نور
-    document.getElementById('light-position-z').addEventListener('input', function(e) {
-        const value = parseFloat(e.target.value);
-        directionalLight.position.z = value;
-        document.getElementById('light-z-value').textContent = value.toFixed(1);
-        // if (helper) helper.update();
-    });
+    const lightPositionZ = document.getElementById('light-position-z');
+    if (lightPositionZ) {
+        lightPositionZ.addEventListener('input', function(e) {
+            const value = parseFloat(e.target.value);
+            directionalLight.position.z = value;
+            const lightZValue = document.getElementById('light-z-value');
+            if (lightZValue) lightZValue.textContent = value.toFixed(1);
+            console.log('تغییر موقعیت Z نور به:', value);
+        });
+    } else {
+        console.error('المان light-position-z یافت نشد');
+    }
     
     // کنترل رنگ نور
     const colorButtons = document.querySelectorAll('.toggle-button[data-color]');
-    colorButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // حذف کلاس active از همه دکمه‌ها
-            colorButtons.forEach(btn => btn.classList.remove('active'));
-            // افزودن کلاس active به دکمه کلیک شده
-            this.classList.add('active');
-            
-            // تنظیم رنگ نور
-            const color = new THREE.Color(this.dataset.color);
-            ambientLight.color.copy(color);
-            directionalLight.color.copy(color);
+    if (colorButtons.length > 0) {
+        colorButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // حذف کلاس active از همه دکمه‌ها
+                colorButtons.forEach(btn => btn.classList.remove('active'));
+                // افزودن کلاس active به دکمه کلیک شده
+                this.classList.add('active');
+                
+                // تنظیم رنگ نور
+                const color = new THREE.Color(this.dataset.color);
+                ambientLight.color.copy(color);
+                directionalLight.color.copy(color);
+                console.log('تغییر رنگ نور به:', this.dataset.color);
+            });
         });
-    });
+    } else {
+        console.error('المان‌های toggle-button[data-color] یافت نشد');
+    }
+    
+    console.log('کنترل‌های نور با موفقیت تنظیم شدند');
 }
 
 // تنظیم گوش‌دهنده رویداد برای دکمه آپلود فایل

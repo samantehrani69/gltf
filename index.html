@@ -161,7 +161,7 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             padding: 12px;
-            z-index: 20;
+            z-index: 30;
             box-shadow: 0 3px 10px rgba(0,0,0,0.15);
         }
         
@@ -247,8 +247,8 @@
                 </div>
             </div>
             
-            <!-- پنل کنترل نور -->
-            <div class="lighting-panel" id="lighting-panel">
+            <!-- پنل کنترل نور (با استایل z-index بیشتر) -->
+            <div class="lighting-panel" id="lighting-panel" style="z-index: 30;">
                 <h3>تنظیمات نور</h3>
                 
                 <!-- نور محیطی -->
@@ -372,7 +372,17 @@
         }
 
         // فراخوانی تابع بارگذاری لیست مدل‌ها پس از بارگذاری صفحه
-        window.addEventListener('DOMContentLoaded', fetchModelsList);
+        window.addEventListener('DOMContentLoaded', function() {
+            fetchModelsList();
+            
+            // اطمینان از فعال بودن کنترل‌های نور
+            if (typeof setupLightingControls === 'function') {
+                // تاخیر کوتاه برای اطمینان از بارگذاری کامل سایر اسکریپت‌ها
+                setTimeout(setupLightingControls, 100);
+            } else {
+                console.error('تابع setupLightingControls یافت نشد');
+            }
+        });
         
         // نمایش خطا در المان error-info
         function showPageError(message) {
