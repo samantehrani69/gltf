@@ -150,6 +150,82 @@
                 max-width: calc(100% - 20px);
             }
         }
+        
+        /* استایل پنل کنترل نور */
+        .lighting-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 200px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 12px;
+            z-index: 20;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+        }
+        
+        .lighting-panel h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 5px;
+            text-align: center;
+        }
+        
+        .lighting-panel label {
+            display: block;
+            margin: 8px 0 3px;
+            font-size: 12px;
+            color: #555;
+        }
+        
+        .lighting-panel input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+            -webkit-appearance: none;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            outline: none;
+        }
+        
+        .lighting-panel input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+        
+        .lighting-panel .value-display {
+            display: inline-block;
+            min-width: 30px;
+            text-align: right;
+            margin-right: 5px;
+            font-size: 12px;
+            color: #4CAF50;
+        }
+        
+        .toggle-button {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 2px 6px;
+            margin: 2px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #555;
+        }
+        
+        .toggle-button.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #388E3C;
+        }
     </style>
     <meta name="description" content="نمایشگر آنلاین مدل‌های سه‌بعدی GLTF/GLB با امکان بارگذاری مدل دلخواه">
     <meta name="keywords" content="3D, model viewer, GLTF, GLB, Three.js, نمایشگر سه بعدی">
@@ -168,6 +244,54 @@
                     <div style="text-align: center; padding: 10px; color: #666;">
                         در حال بارگذاری مدل‌ها...
                     </div>
+                </div>
+            </div>
+            
+            <!-- پنل کنترل نور -->
+            <div class="lighting-panel" id="lighting-panel">
+                <h3>تنظیمات نور</h3>
+                
+                <!-- نور محیطی -->
+                <label>
+                    <span class="value-display" id="ambient-value">0.7</span>
+                    شدت نور محیطی
+                </label>
+                <input type="range" id="ambient-intensity" min="0" max="2" step="0.05" value="0.7">
+                
+                <!-- نور جهت‌دار -->
+                <label>
+                    <span class="value-display" id="directional-value">0.8</span>
+                    شدت نور جهت‌دار
+                </label>
+                <input type="range" id="directional-intensity" min="0" max="2" step="0.05" value="0.8">
+                
+                <!-- زاویه نور در محور X -->
+                <label>
+                    <span class="value-display" id="light-x-value">1</span>
+                    موقعیت X نور
+                </label>
+                <input type="range" id="light-position-x" min="-5" max="5" step="0.1" value="1">
+                
+                <!-- زاویه نور در محور Y -->
+                <label>
+                    <span class="value-display" id="light-y-value">1</span>
+                    موقعیت Y نور
+                </label>
+                <input type="range" id="light-position-y" min="-5" max="5" step="0.1" value="1">
+                
+                <!-- زاویه نور در محور Z -->
+                <label>
+                    <span class="value-display" id="light-z-value">1</span>
+                    موقعیت Z نور
+                </label>
+                <input type="range" id="light-position-z" min="-5" max="5" step="0.1" value="1">
+                
+                <!-- کلیدهای انتخاب رنگ نور -->
+                <label>رنگ نور:</label>
+                <div>
+                    <button class="toggle-button active" data-color="#ffffff" id="light-white">سفید</button>
+                    <button class="toggle-button" data-color="#ffffcc" id="light-warm">گرم</button>
+                    <button class="toggle-button" data-color="#ccccff" id="light-cool">سرد</button>
                 </div>
             </div>
         </div>

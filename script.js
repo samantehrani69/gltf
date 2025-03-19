@@ -1,5 +1,6 @@
 // متغیرهای اصلی
 let scene, camera, renderer, controls, model;
+let ambientLight, directionalLight; // متغیرهای نور
 let container = document.getElementById('model-viewer');
 let loadingElement = document.getElementById('loading');
 let isWebGLSupported = true;
@@ -51,12 +52,16 @@ function initScene() {
     }
 
     // افزودن نور به صحنه
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(1, 1, 1);
     scene.add(directionalLight);
+
+    // نمایش کمکی برای نور جهت‌دار (برای توسعه‌دهندگان)
+    // const helper = new THREE.DirectionalLightHelper(directionalLight, 1);
+    // scene.add(helper);
 
     // ایجاد کنترل‌ها برای چرخاندن مدل
     try {
@@ -76,6 +81,9 @@ function initScene() {
     
     // نمایش یک شکل ساده برای آزمایش صحنه
     addTestCube();
+    
+    // تنظیم کنترل‌های نور
+    setupLightingControls();
 }
 
 // افزودن یک مکعب ساده برای آزمایش صحنه
@@ -101,6 +109,11 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
+    
+    // به‌روزرسانی نور در هر فریم
+    // این می‌تواند برای افکت‌های خاص مورد استفاده قرار گیرد
+    // directionalLight.position.x = Math.sin(Date.now() * 0.001) * 3;
+    
     renderer.render(scene, camera);
 }
 
@@ -265,6 +278,64 @@ function showError(message) {
         loadingElement.style.display = 'none';
         loadingElement.style.color = '#333';
     }, 3000);
+}
+
+// تنظیم کنترل‌های نور
+function setupLightingControls() {
+    // کنترل شدت نور محیطی
+    document.getElementById('ambient-intensity').addEventListener('input', function(e) {
+        const value = parseFloat(e.target.value);
+        ambientLight.intensity = value;
+        document.getElementById('ambient-value').textContent = value.toFixed(2);
+    });
+    
+    // کنترل شدت نور جهت‌دار
+    document.getElementById('directional-intensity').addEventListener('input', function(e) {
+        const value = parseFloat(e.target.value);
+        directionalLight.intensity = value;
+        document.getElementById('directional-value').textContent = value.toFixed(2);
+    });
+    
+    // کنترل موقعیت X نور
+    document.getElementById('light-position-x').addEventListener('input', function(e) {
+        const value = parseFloat(e.target.value);
+        directionalLight.position.x = value;
+        document.getElementById('light-x-value').textContent = value.toFixed(1);
+        // اگر helper وجود دارد، آن را بروز کن
+        // if (helper) helper.update();
+    });
+    
+    // کنترل موقعیت Y نور
+    document.getElementById('light-position-y').addEventListener('input', function(e) {
+        const value = parseFloat(e.target.value);
+        directionalLight.position.y = value;
+        document.getElementById('light-y-value').textContent = value.toFixed(1);
+        // if (helper) helper.update();
+    });
+    
+    // کنترل موقعیت Z نور
+    document.getElementById('light-position-z').addEventListener('input', function(e) {
+        const value = parseFloat(e.target.value);
+        directionalLight.position.z = value;
+        document.getElementById('light-z-value').textContent = value.toFixed(1);
+        // if (helper) helper.update();
+    });
+    
+    // کنترل رنگ نور
+    const colorButtons = document.querySelectorAll('.toggle-button[data-color]');
+    colorButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // حذف کلاس active از همه دکمه‌ها
+            colorButtons.forEach(btn => btn.classList.remove('active'));
+            // افزودن کلاس active به دکمه کلیک شده
+            this.classList.add('active');
+            
+            // تنظیم رنگ نور
+            const color = new THREE.Color(this.dataset.color);
+            ambientLight.color.copy(color);
+            directionalLight.color.copy(color);
+        });
+    });
 }
 
 // تنظیم گوش‌دهنده رویداد برای دکمه آپلود فایل
