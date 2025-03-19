@@ -150,6 +150,7 @@
             fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/models`)
                 .then(response => response.json())
                 .then(data => {
+                    console.log('داده دریافتی از GitHub:', data);
                     const container = document.getElementById('sidebar-models');
                     data.forEach(item => {
                         // فقط فایل‌هایی که پسوند glb یا gltf دارند
