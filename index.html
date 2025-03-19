@@ -115,11 +115,10 @@
             <label for="file-input" class="file-input">انتخاب فایل GLTF/GLB</label>
             <input type="file" id="file-input" accept=".gltf,.glb" style="display: none;">
             
-            <!-- منوی کناری برای مدل‌های آماده در مخزن -->
-            <div class="sidebar">
+            <!-- منوی کناری برای نمایش خودکار فایل‌های موجود در پوشه models -->
+            <div class="sidebar" id="sidebar-models">
                 <h3>مدل‌های ذخیره‌شده</h3>
-                <span class="model-link" onclick="loadModelURL('models/duck.glb')">Duck.glb</span>
-                <span class="model-link" onclick="loadModelURL('models/yourModel.glb')">مدل دیگر</span>
+                <!-- فایل‌های موجود در پوشه models به صورت داینامیک اینجا اضافه می‌شوند -->
             </div>
         </div>
         <div id="error-info"></div>
@@ -139,5 +138,35 @@
     
     <!-- اسکریپت اصلی -->
     <script src="script.js"></script>
+    <script>
+        // نام کاربری و نام مخزن را طبق اطلاعات خود تغییر دهید
+        const GITHUB_USER = 'YOUR_USERNAME';
+        const GITHUB_REPO = '3d-model-viewer';
+
+        function fetchModelsList() {
+            fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/models`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('sidebar-models');
+                    data.forEach(item => {
+                        // فقط فایل‌هایی که پسوند glb یا gltf دارند
+                        if (item.name.endsWith('.glb') || item.name.endsWith('.gltf')) {
+                            const span = document.createElement('span');
+                            span.className = 'model-link';
+                            span.textContent = item.name;
+                            span.addEventListener('click', () => {
+                                loadModelURL('models/' + item.name);
+                            });
+                            container.appendChild(span);
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('خطا در دریافت لیست مدل‌ها:', error);
+                });
+        }
+
+        window.addEventListener('DOMContentLoaded', fetchModelsList);
+    </script>
 </body>
 </html>
