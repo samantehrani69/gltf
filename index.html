@@ -645,13 +645,20 @@
         script.src = 'script.js';
         script.onload = function() {
             console.log("اسکریپت اصلی با موفقیت بارگذاری شد");
-            // فورا تابع loadModelsList را فراخوانی می‌کنیم
-            if (typeof loadModelsList === 'function') {
-                loadModelsList();
-                console.log("فراخوانی تابع loadModelsList انجام شد");
+            // راه‌اندازی صحنه و لیست مدل‌ها
+            if (typeof initScene === 'function') {
+                initScene();
+                animate(); // شروع حلقه انیمیشن
+                
+                // بارگذاری لیست مدل‌ها
+                if (typeof loadModelsList === 'function') {
+                    setTimeout(loadModelsList, 500);
+                } else {
+                    console.error("تابع loadModelsList یافت نشد");
+                }
             } else {
-                console.error("تابع loadModelsList یافت نشد");
-                document.getElementById('error-info').textContent = "خطا: تابع loadModelsList یافت نشد";
+                console.error("تابع initScene یافت نشد");
+                document.getElementById('error-info').textContent = "خطا: تابع initScene یافت نشد";
                 document.getElementById('error-info').style.display = 'block';
             }
         };

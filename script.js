@@ -73,18 +73,8 @@ function initScene() {
     // const helper = new THREE.DirectionalLightHelper(directionalLight, 1);
     // scene.add(helper);
 
-    // ایجاد کنترل‌ها برای چرخاندن مدل
-    try {
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.screenSpacePanning = false;
-        controls.minDistance = 1;
-        controls.maxDistance = 10;
-        controls.update();
-    } catch (e) {
-        console.error('خطا در ایجاد کنترل‌ها:', e);
-    }
+    // جایگزینی کد قبلی OrbitControls با تابع جدید
+    setupOrbitControls();
 
     // اضافه کردن تغییر اندازه خودکار
     window.addEventListener('resize', onWindowResize, false);
@@ -468,51 +458,123 @@ function animate() {
 // پیام خوشامدگویی در کنسول
 console.log('نمایشگر مدل‌های GLTF/GLB آماده است. از منوی کناری یک مدل انتخاب کنید.');
 
-// تابع جدید برای بارگذاری لیست مدل‌ها - بازنویسی شده برای استفاده مستقیم از فایل‌های موجود
+// تابع جدید برای بارگذاری لیست مدل‌ها - اسکن همه فایل‌ها از پوشه models
 function loadModelsList() {
     const modelsList = document.getElementById('models-list');
     if (!modelsList) return;
     
     // نمایش پیام بارگذاری
-    modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">در حال بارگذاری مدل‌ها...</div>';
+    modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">در حال اسکن فایل‌های مدل...</div>';
     
-    // لیست مدل‌ها به صورت مستقیم - بدون استفاده از models.json
-    const models = [
-        { name: 'مکعب', file: 'cube.glb', description: 'یک مکعب سه بعدی ساده' },
-        { name: 'کره', file: 'sphere.glb', description: 'یک کره سه بعدی ساده' },
-        { name: 'استوانه', file: 'cylinder.glb', description: 'یک استوانه سه بعدی ساده' },
-        { name: 'صفحه', file: 'plane.glb', description: 'یک صفحه سه بعدی ساده' },
-        { name: 'مخروط', file: 'cone.glb', description: 'یک مخروط سه بعدی ساده' }
-    ];
-    
-    // پاک کردن لیست قبلی
-    modelsList.innerHTML = '';
-    
-    // بررسی وجود مدل در لیست
-    if (models.length === 0) {
-        modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">هیچ مدلی یافت نشد</div>';
+    // استفاده از API گیت‌هاب برای دریافت همه فایل‌های موجود در پوشه models
+    fetch('https://api.github.com/repos/samantehrani69/gltf/contents/models')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`خطا در دریافت لیست فایل‌ها: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(files => {
+            // فیلتر کردن فقط فایل‌های GLB و GLTF
+            const modelFiles = files.filter(file => 
+                file.name.toLowerCase().endsWith('.glb') || 
+                file.name.toLowerCase().endsWith('.gltf')
+            );
+            
+            // بررسی وجود فایل مدل
+            if (modelFiles.length === 0) {
+                modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">هیچ مدلی یافت نشد</div>';
+                return;
+            }
+            
+            // پاک کردن لیست قبلی
+            modelsList.innerHTML = '';
+            
+            // اضافه کردن هر فایل به لیست
+            modelFiles.forEach(file => {
+                const link = document.createElement('a');
+                link.className = 'model-link';
+                link.textContent = file.name;
+                link.addEventListener('click', () => {
+                    // انتخاب این مدل در لیست
+                    document.querySelectorAll('.model-link').forEach(item => {
+                        item.style.fontWeight = 'normal';
+                    });
+                    link.style.fontWeight = 'bold';
+                    
+                    // بارگذاری مدل با استفاده از آدرس مستقیم
+                    loadModelURL(file.download_url);
+                });
+                modelsList.appendChild(link);
+            });
+            
+            console.log(`${modelFiles.length} مدل یافت شد و در لیست نمایش داده شد.`);
+        })
+        .catch(error => {
+            console.error('خطا در اسکن فایل‌های مدل:', error);
+            
+            // نمایش یک لیست پیش‌فرض از فایل‌های محلی در صورت خطا
+            const localFiles = [
+                { name: 'cube.glb', path: 'models/cube.glb' },
+                { name: 'sphere.glb', path: 'models/sphere.glb' },
+                { name: 'cylinder.glb', path: 'models/cylinder.glb' },
+                { name: 'cone.glb', path: 'models/cone.glb' },
+                { name: 'torus.glb', path: 'models/torus.glb' }
+            ];
+            
+            modelsList.innerHTML = '';
+            localFiles.forEach(file => {
+                const link = document.createElement('a');
+                link.className = 'model-link';
+                link.textContent = file.name;
+                link.addEventListener('click', () => {
+                    document.querySelectorAll('.model-link').forEach(item => {
+                        item.style.fontWeight = 'normal';
+                    });
+                    link.style.fontWeight = 'bold';
+                    
+                    loadModelURL(file.path);
+                });
+                modelsList.appendChild(link);
+            });
+        });
+}
+
+// بهبود تنظیمات OrbitControls برای چرخش و زوم بهتر
+function setupOrbitControls() {
+    if (!camera || !renderer || !renderer.domElement) {
+        console.error('camera یا renderer موجود نیست');
         return;
     }
     
-    // اضافه کردن هر مدل به لیست
-    models.forEach(model => {
-        const link = document.createElement('a');
-        link.className = 'model-link';
-        link.textContent = model.name;
-        link.title = model.description || model.name;
-        link.addEventListener('click', () => {
-            // انتخاب این مدل در لیست
-            document.querySelectorAll('.model-link').forEach(item => {
-                item.style.fontWeight = 'normal';
-            });
-            link.style.fontWeight = 'bold';
-            
-            // بارگذاری مدل با استفاده از مسیر نسبی
-            loadModelURL(`models/${model.file}`);
-        });
-        modelsList.appendChild(link);
-    });
-    
-    console.log(`${models.length} مدل به صورت مستقیم بارگذاری شد.`);
+    try {
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        
+        // تنظیمات برای چرخش روان‌تر
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        
+        // فعال کردن زوم
+        controls.enableZoom = true;
+        controls.zoomSpeed = 1.0;
+        
+        // محدودیت‌های زوم
+        controls.minDistance = 1;
+        controls.maxDistance = 20;
+        
+        // فعال کردن چرخش
+        controls.enableRotate = true;
+        controls.rotateSpeed = 1.0;
+        
+        // فعال کردن پن (جابجایی)
+        controls.enablePan = true;
+        controls.screenSpacePanning = true;
+        
+        // به‌روزرسانی اولیه
+        controls.update();
+        
+        console.log('کنترل‌های چرخش و زوم با موفقیت تنظیم شدند');
+    } catch (e) {
+        console.error('خطا در تنظیم کنترل‌های چرخش و زوم:', e);
+    }
 }
-```
