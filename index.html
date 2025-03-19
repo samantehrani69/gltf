@@ -74,15 +74,18 @@
             position: absolute;
             bottom: 20px;
             left: 50%;
-            transform: translateX(-50%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        #error-info {
             color: #d32f2f;
             text-align: center;
+            margin-top: 10px;
             font-weight: bold;
             background-color: rgba(255,235,238,0.8);
-            padding: 8px 15px;
+            padding: 8px;
             border-radius: 4px;
             display: none;
-            z-index: 100;
         }
         .sidebar {
             position: absolute;
@@ -317,119 +320,120 @@
                     <button class="toggle-button" data-color="#ccccff" id="light-cool">سرد</button>
                 </div>
             </div>
-        </div>
-        <div id="controls">
+            
+            <!-- انتقال error-info به داخل model-viewer -->
             <div id="error-info"></div>
         </div>
-        or-info به داخل model-viewer -->
+        
+        <!-- حذف کامل div با شناسه controls -->
+        
         <!-- دکمه نمایش/مخفی‌سازی پنل نور -->
         <button id="toggle-lighting-panel" title="تنظیمات نور">💡</button>
     </div>
-->
+
     <!-- کتابخانه‌های Three.js -->
-    <script src="https://cdn.jsdelivr.net/npm/three/build/three.min.js"></script>-- دکمه نمایش/مخفی‌سازی پنل نور -->
-    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>        <button id="toggle-lighting-panel" title="تنظیمات نور">💡</button>
+    <script src="https://cdn.jsdelivr.net/npm/three/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
     
     <!-- اسکریپت اصلی -->
     <script src="script.js"></script>
-    <script><script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
-        // نام کاربری و نام مخزنcdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
+    <script>
+        // نام کاربری و نام مخزن
         const GITHUB_USER = 'samantehrani69';
-        const GITHUB_REPO = 'gltf';ریپت اصلی -->
-ript>
+        const GITHUB_REPO = 'gltf';
+
         function fetchModelsList() {
             const modelsList = document.getElementById('models-list');
-            modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">در حال بارگذاری مدل‌ها...</div>';        const GITHUB_USER = 'samantehrani69';
+            modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">در حال بارگذاری مدل‌ها...</div>';
             
             fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/models`)
                 .then(response => {
-                    if (!response.ok) {const modelsList = document.getElementById('models-list');
-                        throw new Error(`خطا در دریافت اطلاعات: ${response.status}`);">در حال بارگذاری مدل‌ها...</div>';
+                    if (!response.ok) {
+                        throw new Error(`خطا در دریافت اطلاعات: ${response.status}`);
                     }
-                    return response.json();om/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/models`)
+                    return response.json();
                 })
-                .then(data => {f (!response.ok) {
-                    console.log('داده دریافتی از GitHub:', data);ا در دریافت اطلاعات: ${response.status}`);
-                      }
-                    // تخلیه محتواonse.json();
+                .then(data => {
+                    console.log('داده دریافتی از GitHub:', data);
+                    
+                    // تخلیه محتوا
                     modelsList.innerHTML = '';
-                    n(data => {
-                    // بررسی آیا داده‌ای موجود استاده دریافتی از GitHub:', data);
+                    
+                    // بررسی آیا داده‌ای موجود است
                     if (!data || data.length === 0) {
-                        modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">هیچ مدلی یافت نشد</div>';// تخلیه محتوا
+                        modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">هیچ مدلی یافت نشد</div>';
                         return;
                     }
                     
-                    // نمایش مدل‌های موجود| data.length === 0) {
-                    let hasModels = false;   modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">هیچ مدلی یافت نشد</div>';
-                    data.forEach(item => {    return;
+                    // نمایش مدل‌های موجود
+                    let hasModels = false;
+                    data.forEach(item => {
                         // فقط فایل‌هایی که پسوند glb یا gltf دارند
                         if (item.name.endsWith('.glb') || item.name.endsWith('.gltf')) {
                             hasModels = true;
                             const span = document.createElement('span');
                             span.className = 'model-link';
-                            span.textContent = item.name;سوند glb یا gltf دارند
-                            span.title = `بارگذاری ${item.name}`;With('.gltf')) {
+                            span.textContent = item.name;
+                            span.title = `بارگذاری ${item.name}`;
                             span.addEventListener('click', () => {
-                                document.querySelectorAll('.model-link').forEach(link => {lement('span');
+                                document.querySelectorAll('.model-link').forEach(link => {
                                     link.style.fontWeight = 'normal';
                                 });
                                 span.style.fontWeight = 'bold';
                                 loadModelURL('models/' + item.name);
-                            });ument.querySelectorAll('.model-link').forEach(link => {
-                            modelsList.appendChild(span);rmal';
+                            });
+                            modelsList.appendChild(span);
                         }
-                    }); span.style.fontWeight = 'bold';
-                    item.name);
-                    if (!hasModels) {   });
-                        modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">هیچ مدل GLTF/GLB یافت نشد</div>';     modelsList.appendChild(span);
-                    }    }
+                    });
+                    
+                    if (!hasModels) {
+                        modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">هیچ مدل GLTF/GLB یافت نشد</div>';
+                    }
                 })
                 .catch(error => {
-                    console.error('خطا در دریافت لیست مدل‌ها:', error);f (!hasModels) {
-                    modelsList.innerHTML = `<div style="text-align: center; padding: 10px; color: #d32f2f;">      modelsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">هیچ مدل GLTF/GLB یافت نشد</div>';
+                    console.error('خطا در دریافت لیست مدل‌ها:', error);
+                    modelsList.innerHTML = `<div style="text-align: center; padding: 10px; color: #d32f2f;">
                         خطا در دریافت لیست مدل‌ها<br>
                         <small>${error.message}</small>
                     </div>`;
-                }); مدل‌ها:', error);
-        }"text-align: center; padding: 10px; color: #d32f2f;">
-در دریافت لیست مدل‌ها<br>
-        // فراخوانی تابع بارگذاری لیست مدل‌ها پس از بارگذاری صفحه     <small>${error.message}</small>
-        window.addEventListener('DOMContentLoaded', function() {           </div>`;
-            fetchModelsList();                });
+                });
+        }
+
+        // فراخوانی تابع بارگذاری لیست مدل‌ها پس از بارگذاری صفحه
+        window.addEventListener('DOMContentLoaded', function() {
+            fetchModelsList();
             
             // اطمینان از فعال بودن کنترل‌های نور
-            if (typeof setupLightingControls === 'function') {اری لیست مدل‌ها پس از بارگذاری صفحه
-                // تاخیر کوتاه برای اطمینان از بارگذاری کامل سایر اسکریپت‌هاow.addEventListener('DOMContentLoaded', function() {
+            if (typeof setupLightingControls === 'function') {
+                // تاخیر کوتاه برای اطمینان از بارگذاری کامل سایر اسکریپت‌ها
                 setTimeout(setupLightingControls, 100);
             } else {
                 console.error('تابع setupLightingControls یافت نشد');
-            }ion') {
-        });اخیر کوتاه برای اطمینان از بارگذاری کامل سایر اسکریپت‌ها
+            }
+        });
         
-        // نمایش خطا در المان error-info else {
-        function showPageError(message) {     console.error('تابع setupLightingControls یافت نشد');
-            const errorInfo = document.getElementById('error-info');    }
+        // نمایش خطا در المان error-info
+        function showPageError(message) {
+            const errorInfo = document.getElementById('error-info');
             errorInfo.textContent = message;
             errorInfo.style.display = 'block';
             setTimeout(() => {
                 errorInfo.style.display = 'none';
-            }, 5000);entById('error-info');
-        }ent = message;
+            }, 5000);
+        }
 
-        // اضافه کردن کد مدیریت دکمه نمایش/مخفی‌سازی پنل نورt(() => {
-        document.getElementById('toggle-lighting-panel').addEventListener('click', function() {       errorInfo.style.display = 'none';
-            const panel = document.getElementById('lighting-panel');            }, 5000);
+        // اضافه کردن کد مدیریت دکمه نمایش/مخفی‌سازی پنل نور
+        document.getElementById('toggle-lighting-panel').addEventListener('click', function() {
+            const panel = document.getElementById('lighting-panel');
             if (panel.style.display === 'none') {
                 panel.style.display = 'block';
                 this.title = 'مخفی کردن تنظیمات نور';
-            } else {panel').addEventListener('click', function() {
-                panel.style.display = 'none';yId('lighting-panel');
+            } else {
+                panel.style.display = 'none';
                 this.title = 'نمایش تنظیمات نور';
-            }l.style.display = 'block';
-        });ات نور';
+            }
+        });
     </script>
-</body>   panel.style.display = 'none';
-</html></body>
+</body>
 </html>
