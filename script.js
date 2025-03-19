@@ -417,7 +417,7 @@ window.addEventListener('load', function() {
     if (fileInput) {
         fileInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
-            if (file) {
+            اگر (file) {
                 loadModel(file);
             }
         });
@@ -467,7 +467,13 @@ console.log('نمایشگر مدل‌های GLTF/GLB آماده است. از م�
 // تابع جدید برای بارگذاری لیست مدل‌ها
 function loadModelsList() {
     fetch('models/models.json')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                console.error('خطا در پاسخ سرور:', response.status, response.statusText);
+                return [];
+            }
+            return response.json();
+        })
         .then(models => {
             const container = document.getElementById('models-list');
             if (!container) return;
