@@ -435,23 +435,27 @@ if (fileListLoading) {
     fileListLoading.remove();
 }
 
-// تلاش برای بارگذاری فایل‌های JSON با مدیریت خطای بهتر
+// تلاش برای بارگذاری فایل‌های JSON با مدیریت خطای ساده‌تر
 function loadFileList() {
     console.log('تلاش برای بارگذاری لیست فایل‌ها...');
-    
-    // اضافه کردن پیام بارگذاری موقت
+
+    // اگر فایل با پروتکل file:// باز شود، درخواست fetch کار نمی‌کند.
+    if (window.location.protocol === 'file:') {
+        const fileListDiv = document.getElementById('file-list');
+        const errorItem = document.createElement('p');
+        errorItem.style.color = 'red';
+        errorItem.innerHTML = 'شما در حال اجرای فایل از مسیر <code>file://</code> هستید. <br>لطفاً از یک سرور محلی استفاده کنید تا لیست فایل‌ها بارگذاری شود.';
+        fileListDiv.textContent = ''; // حذف هر متن دیگر
+        fileListDiv.appendChild(errorItem);
+        return;
+    }
+
     const loadingItem = document.createElement('p');
     loadingItem.id = 'file-list-loading-temp';
     loadingItem.textContent = 'در حال بارگذاری لیست فایل‌ها...';
     fileListDiv.appendChild(loadingItem);
-    
-    // مسیر فایل JSON را به صورت مطلق می‌سازیم تا مطمئن شویم فایل پیدا می‌شود
-    const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-    const jsonUrl = new URL('models/files.json', baseUrl).href;
-    
-    console.log(`بارگذاری لیست فایل‌ها از: ${jsonUrl}`);
-    
-    fetch(jsonUrl)
+
+    fetch('models/files.json')
         .then(response => {
             if (!response.ok) {
                 throw new Error(`خطای HTTP: ${response.status}`);
@@ -459,8 +463,7 @@ function loadFileList() {
             return response.json();
         })
         .then(files => {
-            console.log(`${files.length} فایل یافت شد:`);
-            console.log(files);
+            console.log(`${files.length} فایل یافت شد:`, files);
             
             // حذف پیام بارگذاری
             const loadingTemp = document.getElementById('file-list-loading-temp');
