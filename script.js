@@ -169,7 +169,7 @@ try {
     console.log('Draco loader not available:', e);
 }
 
-// تابع بارگذاری مدل با پشتیبانی بهتر برای GLB
+// تابع بارگذاری مدل با پشتیبانی بهتر برای GLB - ساده‌سازی شده
 function loadModel(file) {
     if (currentModel) {
         scene.remove(currentModel);
@@ -179,18 +179,10 @@ function loadModel(file) {
     showLoading();
     console.log(`در حال بارگذاری مدل: ${file}`);
     
-    // بررسی مسیر فایل
-    let modelPath = `models/${file}`;
+    // مسیر مستقیم فایل بدون بررسی اولیه
+    const modelPath = `models/${file}`;
     
-    // بررسی برای URL کامل
-    if (!modelPath.startsWith('http') && !modelPath.startsWith('blob:')) {
-        // تبدیل مسیر نسبی به مسیر کامل بر اساس URL فعلی
-        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-        modelPath = new URL(modelPath, baseUrl).href;
-    }
-    
-    console.log(`بارگذاری مدل از مسیر: ${modelPath}`);
-    
+    // بارگذاری مستقیم مدل
     loader.load(modelPath, 
         // موفقیت
         (gltf) => {
@@ -212,7 +204,38 @@ function loadModel(file) {
         // خطا
         (error) => {
             console.error('خطا در بارگذاری مدل:', error);
-            alert(`خطا در بارگذاری مدل ${file}: ${error.message}\nلطفاً مطمئن شوید که فایل در مسیر models وجود دارد.`);
+            alert(`خطا در بارگذاری مدل ${file}\nمسیر: ${modelPath}\nخطا: ${error.message}`);
+            hideLoading();
+        }
+    );
+}
+
+// تابع جدید برای بارگذاری مدل از مسیر
+function loadModelFromPath(modelPath, isGLB) {
+    console.log(`بارگذاری مدل از مسیر: ${modelPath}`);
+    
+    loader.load(modelPath, 
+        // موفقیت
+        (gltf) => {
+            currentModel = gltf.scene;
+            optimizeModel(currentModel, isGLB);
+            scene.add(currentModel);
+            fitCameraToModel(currentModel);
+            hideLoading();
+        }, 
+        // پیشرفت
+        (xhr) => {
+            const loadingPercentage = xhr.lengthComputable ? 
+                Math.round((xhr.loaded / xhr.total) * 100) : 
+                Math.round(xhr.loaded / 1024) + 'KB';
+            
+            console.log(`بارگذاری: ${loadingPercentage}`);
+            loadingIndicator.textContent = `در حال بارگذاری مدل: ${loadingPercentage}%`;
+        },
+        // خطا
+        (error) => {
+            console.error('خطا در بارگذاری مدل:', error);
+            alert(`خطا در بارگذاری مدل: ${error.message}\n\nلطفاً از وجود فایل در مسیر درست اطمینان حاصل کنید.`);
             hideLoading();
         }
     );
@@ -435,7 +458,7 @@ if (fileListLoading) {
     fileListLoading.remove();
 }
 
-// بارگذاری لیست فایل‌ها به صورت مستقیم
+// بارگذاری لیست فایل‌ها به صورت مستقیم - ساده‌سازی شده
 function loadFileList() {
     console.log('تنظیم مستقیم لیست فایل‌ها...');
     
@@ -443,21 +466,21 @@ function loadFileList() {
     const loadingTemp = document.getElementById('file-list-loading-temp');
     if (loadingTemp) loadingTemp.remove();
     
-    // تنظیم مستقیم لیست فایل‌ها بدون نیاز به فایل JSON
+    // پاک کردن لیست قبلی
+    fileListDiv.innerHTML = '';
+    
+    // تنظیم مستقیم لیست فایل‌ها بدون بررسی وجود
     const files = ["model1.gltf", "model2.glb", "sample.gltf"];
     
     console.log(`${files.length} فایل تنظیم شد:`, files);
     
-    if (files && files.length > 0) {
-        files.forEach(file => {
-            const p = document.createElement('p');
-            p.textContent = file;
-            p.addEventListener('click', () => loadModel(file));
-            fileListDiv.appendChild(p);
-        });
-    } else {
-        showNoFilesMessage();
-    }
+    files.forEach(file => {
+        const p = document.createElement('p');
+        p.textContent = file;
+        p.style.cursor = 'pointer';
+        p.addEventListener('click', () => loadModel(file));
+        fileListDiv.appendChild(p);
+    });
 }
 
 // نمایش پیام "فایلی یافت نشد"
@@ -472,11 +495,43 @@ function showNoFilesMessage() {
     fileListDiv.appendChild(helpItem);
 }
 
+// بررسی وجود پوشه models و اطلاع‌رسانی به کاربر
+function checkModelsFolder() {
+    fetch('models/')
+        .then(response => {
+            if (!response.ok) {
+                showModelsFolderError();
+            } else {
+                console.log('پوشه models یافت شد.');
+            }
+        })
+        .catch(err => {
+            showModelsFolderError();
+            console.warn('خطا در بررسی وجود پوشه models:', err);
+        });
+}
+
+function showModelsFolderError() {
+    const errorDiv = document.createElement('div');
+    errorDiv.style.padding = '10px';
+    errorDiv.style.marginBottom = '10px';
+    errorDiv.style.backgroundColor = '#ffeeee';
+    errorDiv.style.border = '1px solid #ffaaaa';
+    errorDiv.style.borderRadius = '5px';
+    errorDiv.innerHTML = `
+        <p style="color:red"><strong>خطا:</strong> پوشه <code>models</code> یافت نشد.</p>
+        <p>برای استفاده از این برنامه، لطفاً یک پوشه به نام <code>models</code> ایجاد کنید و فایل‌های مدل سه‌بعدی خود را در آن قرار دهید.</p>
+    `;
+    fileListDiv.insertBefore(errorDiv, fileListDiv.firstChild);
+}
+
 // فراخوانی تابع بارگذاری لیست فایل‌ها
 loadFileList();
 
-// اضافه کردن مدیریت رویداد برای آپلود فایل
+// حذف بررسی وجود پوشه models از DOMContentLoaded
 document.addEventListener('DOMContentLoaded', function() {
+    // حذف کد مربوط به آپلود فایل
+    /*
     const fileInput = document.getElementById('model-upload');
     
     if (!fileInput) {
@@ -495,6 +550,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    */
     
     // تنظیم اولیه نورها
     setupLights();
@@ -527,21 +583,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // نمایش اولیه دمای رنگ
     updateTemperatureDisplay(parseInt(document.getElementById('light-temperature').value));
     
-    // بررسی وجود پوشه models
-    fetch('models/')
+    // بررسی وجود فایل models/files.json به جای پوشه models
+    fetch('models/files.json')
         .then(response => {
             if (!response.ok) {
-                console.warn('پوشه models وجود ندارد یا در دسترس نیست.');
-                // افزودن هشدار به صفحه
-                const warningItem = document.createElement('p');
-                warningItem.textContent = 'هشدار: پوشه models یافت نشد. لطفاً آن را ایجاد کنید.';
-                warningItem.style.color = 'orange';
-                fileListDiv.appendChild(warningItem);
+                console.warn('خطا: فایل models/files.json یافت نشد.');
+                const fileListDiv = document.getElementById('file-list');
+                const errorItem = document.createElement('p');
+                errorItem.style.color = 'red';
+                errorItem.innerHTML = 'خطا: فایل models/files.json یافت نشد. لطفاً مطمئن شوید پوشه models در مسیر صحیح قرار دارد.';
+                fileListDiv.appendChild(errorItem);
             }
         })
         .catch(err => {
-            console.warn('خطا در بررسی پوشه models:', err);
+            console.warn('خطا در بررسی وجود فایل models/files.json:', err);
         });
+    
+    // بررسی وجود پوشه models
+    // checkModelsFolder();
 });
 
 // حلقه انیمیشن برای رندر مداوم
