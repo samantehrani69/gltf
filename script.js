@@ -435,74 +435,29 @@ if (fileListLoading) {
     fileListLoading.remove();
 }
 
-// تلاش برای بارگذاری فایل‌های JSON با مدیریت خطای ساده‌تر
+// بارگذاری لیست فایل‌ها به صورت مستقیم
 function loadFileList() {
-    console.log('تلاش برای بارگذاری لیست فایل‌ها...');
-
-    // اگر فایل با پروتکل file:// باز شود، درخواست fetch کار نمی‌کند.
-    if (window.location.protocol === 'file:') {
-        const fileListDiv = document.getElementById('file-list');
-        const errorItem = document.createElement('p');
-        errorItem.style.color = 'red';
-        errorItem.innerHTML = 'شما در حال اجرای فایل از مسیر <code>file://</code> هستید. <br>لطفاً از یک سرور محلی استفاده کنید تا لیست فایل‌ها بارگذاری شود.';
-        fileListDiv.textContent = ''; // حذف هر متن دیگر
-        fileListDiv.appendChild(errorItem);
-        return;
-    }
-
-    const loadingItem = document.createElement('p');
-    loadingItem.id = 'file-list-loading-temp';
-    loadingItem.textContent = 'در حال بارگذاری لیست فایل‌ها...';
-    fileListDiv.appendChild(loadingItem);
-
-    fetch('models/files.json')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`خطای HTTP: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(files => {
-            console.log(`${files.length} فایل یافت شد:`, files);
-            
-            // حذف پیام بارگذاری
-            const loadingTemp = document.getElementById('file-list-loading-temp');
-            if (loadingTemp) loadingTemp.remove();
-            
-            if (files && files.length > 0) {
-                files.forEach(file => {
-                    const p = document.createElement('p');
-                    p.textContent = file;
-                    p.addEventListener('click', () => loadModel(file));
-                    fileListDiv.appendChild(p);
-                });
-            } else {
-                showNoFilesMessage();
-            }
-        })
-        .catch(error => {
-            console.error('خطا در بارگذاری لیست فایل‌ها:', error);
-            
-            // حذف پیام بارگذاری
-            const loadingTemp = document.getElementById('file-list-loading-temp');
-            if (loadingTemp) loadingTemp.remove();
-            
-            // نمایش پیام خطا در لیست فایل‌ها
-            const errorItem = document.createElement('p');
-            errorItem.textContent = `خطا در بارگذاری لیست فایل‌ها: ${error.message}`;
-            errorItem.style.color = 'red';
-            fileListDiv.appendChild(errorItem);
-            
-            // افزودن راهنمایی برای ساختار فایل JSON
-            const helpItem = document.createElement('p');
-            helpItem.innerHTML = 'لطفاً فایل <code>models/files.json</code> را بررسی کنید.<br>این فایل باید شامل آرایه‌ای از نام‌های فایل باشد.';
-            fileListDiv.appendChild(helpItem);
-            
-            // افزودن نمونه JSON
-            const exampleItem = document.createElement('p');
-            exampleItem.innerHTML = '<code>["model1.glb", "model2.glb", "sample.gltf"]</code>';
-            fileListDiv.appendChild(exampleItem);
+    console.log('تنظیم مستقیم لیست فایل‌ها...');
+    
+    // حذف پیام "درحال بارگذاری..."
+    const loadingTemp = document.getElementById('file-list-loading-temp');
+    if (loadingTemp) loadingTemp.remove();
+    
+    // تنظیم مستقیم لیست فایل‌ها بدون نیاز به فایل JSON
+    const files = ["model1.gltf", "model2.glb", "sample.gltf"];
+    
+    console.log(`${files.length} فایل تنظیم شد:`, files);
+    
+    if (files && files.length > 0) {
+        files.forEach(file => {
+            const p = document.createElement('p');
+            p.textContent = file;
+            p.addEventListener('click', () => loadModel(file));
+            fileListDiv.appendChild(p);
         });
+    } else {
+        showNoFilesMessage();
+    }
 }
 
 // نمایش پیام "فایلی یافت نشد"
