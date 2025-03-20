@@ -7,38 +7,79 @@
     <style>
         body { margin: 0; font-family: Arial, sans-serif; direction: rtl; }
         #scene { width: 80%; height: 100vh; float: left; }
-        #sidebar { width: 20%; height: 100vh; float: right; overflow-y: auto; padding: 10px; background: #f0f0f0; }
-        #file-list p { cursor: pointer; padding: 5px; }
+        #sidebar { width: 20%; height: 100vh; float: right; overflow-y: auto; padding: 10px; background: #f0f0f0; display: flex; flex-direction: column; }
+        #file-section { order: 1; margin-bottom: 15px; }
+        #light-controls { order: 2; }
+        #file-list { max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 5px; margin-top: 10px; }
+        #file-list p { cursor: pointer; padding: 5px; margin: 2px 0; border-radius: 3px; }
         #file-list p:hover { background: #ddd; }
-        #light-controls { margin-top: 20px; }
-        #light-controls label { display: block; margin: 5px 0; }
+        #light-controls { margin-top: 20px; padding: 10px; background: #e8e8e8; border-radius: 5px; }
+        #light-controls label { display: block; margin: 8px 0 3px 0; font-weight: bold; }
+        #light-controls select, #light-controls input { width: 100%; padding: 5px; }
+        .control-group { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
         .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; margin: 10px 0; }
         .upload-btn { border: 2px solid gray; color: gray; background-color: white; padding: 8px 20px; border-radius: 8px; font-size: 16px; }
         .upload-btn-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; }
         .uploaded-file { background: #e0ffe0; }
+        h3 { margin-bottom: 10px; border-bottom: 2px solid #999; padding-bottom: 5px; }
     </style>
 </head>
 <body>
     <div id="scene"></div>
     <div id="sidebar">
-        <h3>لیست فایل‌ها</h3>
-        
-        <!-- افزودن دکمه آپلود فایل -->
-        <div class="upload-btn-wrapper">
-            <button class="upload-btn">انتخاب فایل 3D</button>
-            <input type="file" id="model-upload" accept=".gltf,.glb" />
+        <div id="file-section">
+            <h3>لیست فایل‌ها</h3>
+            <div class="upload-btn-wrapper">
+                <button class="upload-btn">انتخاب فایل 3D</button>
+                <input type="file" id="model-upload" accept=".gltf,.glb" />
+            </div>
+            <div id="file-list"></div>
         </div>
         
-        <div id="file-list"></div>
         <div id="light-controls">
-            <label for="light-x">موقعیت X نور:</label>
-            <input type="range" id="light-x" min="-10" max="10" value="0">
-            <label for="light-y">موقعیت Y نور:</label>
-            <input type="range" id="light-y" min="-10" max="10" value="1">
-            <label for="light-z">موقعیت Z نور:</label>
-            <input type="range" id="light-z" min="-10" max="10" value="1">
-            <label for="light-color">رنگ نور:</label>
-            <input type="color" id="light-color" value="#ffffff">
+            <h3>تنظیمات نور</h3>
+            
+            <div class="control-group">
+                <label for="light-type">نوع نور:</label>
+                <select id="light-type">
+                    <option value="directional">نور جهت‌دار</option>
+                    <option value="point">نور نقطه‌ای</option>
+                    <option value="spot">نور اسپات</option>
+                    <option value="ambient">نور محیطی</option>
+                    <option value="hemisphere">نور نیم‌کره‌ای</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="light-intensity">شدت نور:</label>
+                <input type="range" id="light-intensity" min="0" max="3" step="0.1" value="1">
+                
+                <label for="light-color">رنگ نور:</label>
+                <input type="color" id="light-color" value="#ffffff">
+                
+                <label for="light-temperature">گرمی/سردی نور:</label>
+                <input type="range" id="light-temperature" min="1000" max="10000" step="100" value="6500">
+                <span id="temp-display">6500K (خنثی)</span>
+            </div>
+            
+            <div id="position-controls" class="control-group">
+                <label for="light-x">موقعیت X نور:</label>
+                <input type="range" id="light-x" min="-10" max="10" value="0">
+                
+                <label for="light-y">موقعیت Y نور:</label>
+                <input type="range" id="light-y" min="-10" max="10" value="1">
+                
+                <label for="light-z">موقعیت Z نور:</label>
+                <input type="range" id="light-z" min="-10" max="10" value="1">
+            </div>
+            
+            <div id="spot-controls" class="control-group" style="display: none;">
+                <label for="light-angle">زاویه نور اسپات:</label>
+                <input type="range" id="light-angle" min="0" max="90" value="30">
+                
+                <label for="light-penumbra">لبه نرم:</label>
+                <input type="range" id="light-penumbra" min="0" max="1" step="0.01" value="0">
+            </div>
         </div>
     </div>
 
