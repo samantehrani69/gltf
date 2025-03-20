@@ -91,14 +91,12 @@
         // تابع بارگذاری اسکریپت با قابلیت پشتیبان
         function loadScript(sources, index, onSuccess) {
             if (index >= sources.length) {
-                // اگر همه منابع با شکست مواجه شدند، نمایش خطا
-                document.body.innerHTML = `
-                    <div style="text-align: center; direction: rtl; margin-top: 20px; color: red;">
-                        <h2>خطا در بارگذاری کتابخانه‌ها</h2>
-                        <p>لطفاً اتصال اینترنت خود را بررسی کنید و صفحه را دوباره بارگذاری نمایید.</p>
-                        <button onclick="location.reload()" style="padding: 10px 20px; margin-top: 20px;">تلاش مجدد</button>
-                    </div>
-                `;
+                console.error("خطا: کتابخانه THREE.js بارگذاری نشد. لطفاً اتصال اینترنت خود را بررسی کنید.");
+                const indicator = document.getElementById('loading-indicator');
+                if (indicator) {
+                    indicator.style.display = 'block';
+                    indicator.textContent = "خطا: کتابخانه THREE.js بارگذاری نشد. لطفاً اتصال اینترنت خود را بررسی کنید.";
+                }
                 return;
             }
             
@@ -111,8 +109,7 @@
             };
             
             script.onerror = function() {
-                console.warn(`خطا در بارگذاری ${sources[index]}.`);
-                // تلاش با منبع بعدی
+                console.warn(`خطا در بارگذاری ${sources[index]}. تلاش برای منبع بعدی...`);
                 loadScript(sources, index + 1, onSuccess);
             };
             
