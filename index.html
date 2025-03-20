@@ -12,12 +12,23 @@
         #file-list p:hover { background: #ddd; }
         #light-controls { margin-top: 20px; }
         #light-controls label { display: block; margin: 5px 0; }
+        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; margin: 10px 0; }
+        .upload-btn { border: 2px solid gray; color: gray; background-color: white; padding: 8px 20px; border-radius: 8px; font-size: 16px; }
+        .upload-btn-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; }
+        .uploaded-file { background: #e0ffe0; }
     </style>
 </head>
 <body>
     <div id="scene"></div>
     <div id="sidebar">
         <h3>لیست فایل‌ها</h3>
+        
+        <!-- افزودن دکمه آپلود فایل -->
+        <div class="upload-btn-wrapper">
+            <button class="upload-btn">انتخاب فایل 3D</button>
+            <input type="file" id="model-upload" accept=".gltf,.glb" />
+        </div>
+        
         <div id="file-list"></div>
         <div id="light-controls">
             <label for="light-x">موقعیت X نور:</label>
