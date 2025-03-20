@@ -1,14 +1,31 @@
 // تنظیمات اولیه Three.js
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth * 0.8 / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth * 0.8, window.innerHeight);
+renderer.setSize(document.getElementById('scene').clientWidth, document.getElementById('scene').clientHeight);
 document.getElementById('scene').appendChild(renderer.domElement);
+
+// تنظیم رندرر برای کیفیت بهتر
+renderer.physicallyCorrectLights = true;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1;
 
 // تعریف متغیرهای نور
 let currentLight;
 let ambientLight;
 let hemisphereLight;
+
+// نمایشگر وضعیت بارگذاری
+const loadingIndicator = document.getElementById('loading-indicator');
+function showLoading() {
+    loadingIndicator.style.display = 'block';
+}
+function hideLoading() {
+    loadingIndicator.style.display = 'none';
+}
 
 // تنظیم نورهای پایه
 function setupLights() {
@@ -134,125 +151,204 @@ controls.maxDistance = 100;
 const loader = new THREE.GLTFLoader();
 let currentModel = null;
 
+// بهبود عملکرد لودر GLB
+function enhanceGLTFLoader() {
+    // افزایش حافظه برای فایل‌های بزرگتر
+    THREE.DRACOLoader.getDecoderModule = () => {};
+    if (THREE.DRACOLoader && THREE.DRACOLoader.setDecoderPath) {
+        const dracoLoader = new THREE.DRACOLoader();
+        dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+        loader.setDRACOLoader(dracoLoader);
+    }
+}
+
+// تلاش برای بهبود لودر
+try {
+    enhanceGLTFLoader();
+} catch (e) {
+    console.log('Draco loader not available:', e);
+}
+
 // تابع بارگذاری مدل با پشتیبانی بهتر برای GLB
 function loadModel(file) {
     if (currentModel) {
         scene.remove(currentModel);
     }
     
-    // نمایش لودینگ یا وضعیت بارگذاری
+    // نمایش وضعیت بارگذاری
+    showLoading();
     console.log(`در حال بارگذاری مدل: ${file}`);
     
-    loader.load(`models/${file}`, (gltf) => {
-        currentModel = gltf.scene;
-        
-        // بهینه‌سازی مدل و اعمال مقیاس مناسب
-        optimizeModel(currentModel, file.endsWith('.glb'));
-        
-        scene.add(currentModel);
-        
-        // تنظیم دوربین برای نمایش کامل مدل
-        fitCameraToModel(currentModel);
-    }, 
-    (xhr) => {
-        // نمایش پیشرفت بارگذاری
-        const loadingPercentage = Math.round((xhr.loaded / xhr.total) * 100);
-        console.log(`بارگذاری: ${loadingPercentage}%`);
-    },
-    (error) => {
-        console.error('خطا در بارگذاری مدل:', error);
-        alert(`خطا در بارگذاری مدل ${file}: ${error.message}`);
-    });
+    loader.load(`models/${file}`, 
+        // موفقیت
+        (gltf) => {
+            currentModel = gltf.scene;
+            optimizeModel(currentModel, file.toLowerCase().endsWith('.glb'));
+            scene.add(currentModel);
+            fitCameraToModel(currentModel);
+            hideLoading();
+        }, 
+        // پیشرفت
+        (xhr) => {
+            const loadingPercentage = Math.round((xhr.loaded / xhr.total) * 100);
+            console.log(`بارگذاری: ${loadingPercentage}%`);
+            loadingIndicator.textContent = `در حال بارگذاری مدل: ${loadingPercentage}%`;
+        },
+        // خطا
+        (error) => {
+            console.error('خطا در بارگذاری مدل:', error);
+            alert(`خطا در بارگذاری مدل ${file}: ${error.message}`);
+            hideLoading();
+        }
+    );
 }
 
 // بهینه‌سازی مدل با توجه به نوع فایل
 function optimizeModel(model, isGLB) {
     // تنظیمات مخصوص برای فایل‌های GLB
-    if (isGLB) {
-        // تنظیم مقیاس مناسب برای GLB
-        // برخی فایل‌های GLB ممکن است مقیاس بسیار بزرگ یا کوچک داشته باشند
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        
-        // اگر اندازه مدل بسیار بزرگ یا بسیار کوچک است، آن را مقیاس‌بندی می‌کنیم
-        const maxDimension = Math.max(size.x, size.y, size.z);
-        if (maxDimension > 100 || maxDimension < 0.1) {
-            const scale = 10 / maxDimension;
-            model.scale.set(scale, scale, scale);
-        }
-        
-        // فعال کردن سایه‌ها برای مواد موجود در مدل
-        model.traverse(function(node) {
-            if (node.isMesh) {
-                node.castShadow = true;
-                node.receiveShadow = true;
-                
-                // بهبود مواد برای نمایش بهتر
-                if (node.material) {
-                    // افزایش کیفیت بازتاب نور برای مواد
-                    if (Array.isArray(node.material)) {
-                        node.material.forEach(mat => {
-                            mat.roughness = Math.min(mat.roughness || 0.7, 0.7);
-                            mat.metalness = Math.max(mat.metalness || 0.3, 0.3);
-                        });
-                    } else {
-                        node.material.roughness = Math.min(node.material.roughness || 0.7, 0.7);
-                        node.material.metalness = Math.max(node.material.metalness || 0.3, 0.3);
-                    }
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    
+    // اگر اندازه مدل بسیار بزرگ یا بسیار کوچک است، آن را مقیاس‌بندی می‌کنیم
+    const maxDimension = Math.max(size.x, size.y, size.z);
+    if (maxDimension > 100 || maxDimension < 0.1) {
+        const scale = 10 / maxDimension;
+        model.scale.set(scale, scale, scale);
+    }
+    
+    // فعال کردن سایه‌ها و بهبود مواد برای همه مدل‌ها
+    model.traverse(function(node) {
+        if (node.isMesh) {
+            node.castShadow = true;
+            node.receiveShadow = true;
+            
+            // بهبود مواد برای نمایش بهتر
+            if (node.material) {
+                if (Array.isArray(node.material)) {
+                    node.material.forEach(mat => {
+                        enhanceMaterial(mat);
+                    });
+                } else {
+                    enhanceMaterial(node.material);
                 }
             }
-        });
-    }
+        }
+    });
 }
 
-// تابع بارگذاری مدل از فایل آپلود شده با پشتیبانی بهتر از GLB
+// بهبود مواد برای نمایش بهتر
+function enhanceMaterial(material) {
+    if (!material) return;
+    
+    // تنظیم کیفیت مواد برای نمایش بهتر
+    material.roughness = Math.min(material.roughness || 0.7, 0.7);
+    material.metalness = Math.max(material.metalness || 0.3, 0.3);
+    
+    // فعال‌سازی نقشه‌های نرمال اگر موجود باشند
+    if (material.normalMap) {
+        material.normalScale.set(1, 1);
+    }
+    
+    // تضمین کد رنگ صحیح
+    if (material.map) {
+        material.map.encoding = THREE.sRGBEncoding;
+    }
+    
+    // بهبود بازتاب نور
+    material.envMapIntensity = 1.0;
+}
+
+// تابع بارگذاری مدل از فایل آپلود شده - بهبود یافته برای GLB
 function loadUploadedModel(file) {
     if (currentModel) {
         scene.remove(currentModel);
     }
     
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const fileURL = event.target.result;
-        const isGLB = file.name.toLowerCase().endsWith('.glb');
-        
-        // لاگ برای اطلاعات بیشتر از فایل آپلود شده
-        console.log(`بارگذاری فایل آپلود شده: ${file.name}, اندازه: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-        
-        loader.load(fileURL, (gltf) => {
-            currentModel = gltf.scene;
-            
-            // بهینه‌سازی مدل آپلود شده
-            optimizeModel(currentModel, isGLB);
-            
-            scene.add(currentModel);
-            
-            // تنظیم دوربین برای نمایش کامل مدل
-            fitCameraToModel(currentModel);
-            
-            // اضافه کردن نام فایل به لیست فایل‌های نمایش داده شده
-            addUploadedFileToList(file.name);
-        }, 
-        (xhr) => {
-            const loadingPercentage = Math.round((xhr.loaded / xhr.total) * 100);
-            console.log(`درحال بارگذاری: ${loadingPercentage}%`);
-        }, 
-        (error) => {
-            console.error('خطا در بارگذاری مدل:', error);
-            
-            // نمایش خطای دقیق‌تر برای فایل‌های GLB
-            if (isGLB) {
-                alert(`خطا در بارگذاری فایل GLB: ${error.message}\nاطمینان حاصل کنید که فایل GLB معتبر است و به درستی صادر شده است.`);
-            } else {
-                alert('خطا در بارگذاری مدل: ' + error.message);
-            }
-        });
-    };
+    showLoading();
+    loadingIndicator.textContent = "در حال آماده‌سازی فایل...";
     
-    // برای فایل‌های GLB از ArrayBuffer استفاده می‌کنیم برای دقت بیشتر
-    if (file.name.toLowerCase().endsWith('.glb')) {
+    const isGLB = file.name.toLowerCase().endsWith('.glb');
+    console.log(`بارگذاری فایل آپلود شده: ${file.name}, اندازه: ${(file.size / 1024 / 1024).toFixed(2)}MB, نوع: ${isGLB ? 'GLB' : 'GLTF'}`);
+    
+    // برای فایل‌های GLB از تکنیک جدید استفاده می‌کنیم
+    if (isGLB) {
+        const reader = new FileReader();
+        
+        reader.onload = function(event) {
+            const arrayBuffer = event.target.result;
+            
+            // تبدیل ArrayBuffer به Blob URL برای سازگاری بیشتر
+            const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
+            const blobURL = URL.createObjectURL(blob);
+            
+            loadingIndicator.textContent = "در حال بارگذاری مدل...";
+            
+            // استفاده از URL برای بارگذاری مدل
+            loader.load(blobURL, 
+                // موفقیت
+                (gltf) => {
+                    currentModel = gltf.scene;
+                    optimizeModel(currentModel, true);
+                    scene.add(currentModel);
+                    fitCameraToModel(currentModel);
+                    addUploadedFileToList(file.name);
+                    hideLoading();
+                    
+                    // آزاد کردن حافظه
+                    URL.revokeObjectURL(blobURL);
+                },
+                // پیشرفت
+                (xhr) => {
+                    if (xhr.lengthComputable) {
+                        const loadingPercentage = Math.round((xhr.loaded / xhr.total) * 100);
+                        loadingIndicator.textContent = `در حال بارگذاری مدل: ${loadingPercentage}%`;
+                    }
+                },
+                // خطا
+                (error) => {
+                    console.error('خطا در بارگذاری مدل GLB:', error);
+                    alert(`خطا در بارگذاری فایل GLB: ${error.message}\nاطمینان حاصل کنید که فایل GLB معتبر است.`);
+                    hideLoading();
+                    URL.revokeObjectURL(blobURL);
+                }
+            );
+        };
+        
+        reader.onerror = function() {
+            alert('خطا در خواندن فایل. لطفاً دوباره تلاش کنید.');
+            hideLoading();
+        };
+        
+        // خواندن فایل به عنوان ArrayBuffer
         reader.readAsArrayBuffer(file);
     } else {
+        // روش قبلی برای فایل‌های GLTF
+        const reader = new FileReader();
+        
+        reader.onload = function(event) {
+            const fileURL = event.target.result;
+            
+            loader.load(fileURL, 
+                (gltf) => {
+                    currentModel = gltf.scene;
+                    optimizeModel(currentModel, false);
+                    scene.add(currentModel);
+                    fitCameraToModel(currentModel);
+                    addUploadedFileToList(file.name);
+                    hideLoading();
+                },
+                (xhr) => {
+                    const loadingPercentage = Math.round((xhr.loaded / xhr.total) * 100);
+                    loadingIndicator.textContent = `در حال بارگذاری مدل: ${loadingPercentage}%`;
+                },
+                (error) => {
+                    console.error('خطا در بارگذاری مدل GLTF:', error);
+                    alert('خطا در بارگذاری مدل: ' + error.message);
+                    hideLoading();
+                }
+            );
+        };
+        
         reader.readAsDataURL(file);
     }
 }
@@ -337,16 +433,22 @@ fetch('models/files.json')
 document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('model-upload');
     
-    fileInput.addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        if (file) {
-            if (file.name.endsWith('.gltf') || file.name.endsWith('.glb')) {
-                loadUploadedModel(file);
-            } else {
-                alert('لطفاً فقط فایل‌های با پسوند .gltf یا .glb انتخاب کنید.');
+    if (!fileInput) {
+        console.error('خطا: عنصر model-upload یافت نشد!');
+        alert('خطا در پیدا کردن دکمه آپلود. لطفاً صفحه را بارگذاری مجدد کنید.');
+    } else {
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const lowerFileName = file.name.toLowerCase();
+                if (lowerFileName.endsWith('.gltf') || lowerFileName.endsWith('.glb')) {
+                    loadUploadedModel(file);
+                } else {
+                    alert('لطفاً فقط فایل‌های با پسوند .gltf یا .glb انتخاب کنید.');
+                }
             }
-        }
-    });
+        });
+    }
     
     // تنظیم اولیه نورها
     setupLights();
@@ -378,14 +480,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // نمایش اولیه دمای رنگ
     updateTemperatureDisplay(parseInt(document.getElementById('light-temperature').value));
-    
-    // تنظیم رندرر برای کیفیت بهتر
-    renderer.physicallyCorrectLights = true;
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1;
 });
 
 // حلقه انیمیشن برای رندر مداوم
@@ -398,7 +492,11 @@ animate();
 
 // تنظیم اندازه رندرر با تغییر اندازه پنجره
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth * 0.8 / window.innerHeight;
+    const sceneElement = document.getElementById('scene');
+    const width = sceneElement.clientWidth;
+    const height = sceneElement.clientHeight;
+    
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth * 0.8, window.innerHeight);
+    renderer.setSize(width, height);
 });
