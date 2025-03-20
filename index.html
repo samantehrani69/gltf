@@ -50,8 +50,78 @@
         }
     </style>
     
-    <!-- افزودن کتابخانه‌های Three.js با ترتیب صحیح -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r138/three.min.js"></script>
+    <!-- استفاده از کتابخانه‌های آنلاین با سیستم پشتیبان -->
+    <script>
+        // مدیریت خطا و بارگذاری کتابخانه‌ها
+        function loadLibraries() {
+            // لیست CDN‌های THREE.js
+            const threeSources = [
+                "https://cdn.jsdelivr.net/npm/three@0.138.0/build/three.min.js",
+                "https://cdnjs.cloudflare.com/ajax/libs/three.js/r138/three.min.js",
+                "https://unpkg.com/three@0.138.0/build/three.min.js"
+            ];
+            
+            // لیست CDN‌های GLTFLoader
+            const gltfLoaderSources = [
+                "https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/loaders/GLTFLoader.js",
+                "https://unpkg.com/three@0.138.0/examples/js/loaders/GLTFLoader.js"
+            ];
+            
+            // لیست CDN‌های OrbitControls
+            const orbitControlsSources = [
+                "https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/controls/OrbitControls.js",
+                "https://unpkg.com/three@0.138.0/examples/js/controls/OrbitControls.js"
+            ];
+            
+            // بارگذاری THREE.js
+            loadScript(threeSources, 0, function() {
+                // پس از بارگذاری THREE.js، بارگذاری GLTFLoader
+                loadScript(gltfLoaderSources, 0, function() {
+                    // پس از بارگذاری GLTFLoader، بارگذاری OrbitControls
+                    loadScript(orbitControlsSources, 0, function() {
+                        // پس از بارگذاری همه کتابخانه‌ها، بارگذاری اسکریپت اصلی
+                        const scriptElement = document.createElement('script');
+                        scriptElement.src = 'script.js';
+                        document.body.appendChild(scriptElement);
+                    });
+                });
+            });
+        }
+        
+        // تابع بارگذاری اسکریپت با قابلیت پشتیبان
+        function loadScript(sources, index, onSuccess) {
+            if (index >= sources.length) {
+                // اگر همه منابع با شکست مواجه شدند، نمایش خطا
+                document.body.innerHTML = `
+                    <div style="text-align: center; direction: rtl; margin-top: 20px; color: red;">
+                        <h2>خطا در بارگذاری کتابخانه‌ها</h2>
+                        <p>لطفاً اتصال اینترنت خود را بررسی کنید و صفحه را دوباره بارگذاری نمایید.</p>
+                        <button onclick="location.reload()" style="padding: 10px 20px; margin-top: 20px;">تلاش مجدد</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = sources[index];
+            
+            script.onload = function() {
+                console.log(`کتابخانه ${sources[index]} با موفقیت بارگذاری شد.`);
+                if (onSuccess) onSuccess();
+            };
+            
+            script.onerror = function() {
+                console.warn(`خطا در بارگذاری ${sources[index]}.`);
+                // تلاش با منبع بعدی
+                loadScript(sources, index + 1, onSuccess);
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        // شروع بارگذاری کتابخانه‌ها
+        window.addEventListener('DOMContentLoaded', loadLibraries);
+    </script>
 </head>
 <body>
     <div id="container">
@@ -118,16 +188,5 @@
     </div>
     
     <div id="loading-indicator">در حال بارگذاری مدل...</div>
-
-    <!-- بارگذاری افزونه‌های Three.js بعد از three.min.js و با ترتیب صحیح -->
-    <script>
-        // اطمینان از اینکه THREE تعریف شده است
-        if (typeof THREE === 'undefined') {
-            alert('خطا: کتابخانه THREE.js بارگذاری نشده است. لطفاً اتصال اینترنت خود را بررسی کنید.');
-        }
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="script.js"></script>
 </body>
 </html>
