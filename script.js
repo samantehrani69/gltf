@@ -179,7 +179,19 @@ function loadModel(file) {
     showLoading();
     console.log(`در حال بارگذاری مدل: ${file}`);
     
-    loader.load(`models/${file}`, 
+    // بررسی مسیر فایل
+    let modelPath = `models/${file}`;
+    
+    // بررسی برای URL کامل
+    if (!modelPath.startsWith('http') && !modelPath.startsWith('blob:')) {
+        // تبدیل مسیر نسبی به مسیر کامل بر اساس URL فعلی
+        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        modelPath = new URL(modelPath, baseUrl).href;
+    }
+    
+    console.log(`بارگذاری مدل از مسیر: ${modelPath}`);
+    
+    loader.load(modelPath, 
         // موفقیت
         (gltf) => {
             currentModel = gltf.scene;
@@ -190,14 +202,17 @@ function loadModel(file) {
         }, 
         // پیشرفت
         (xhr) => {
-            const loadingPercentage = Math.round((xhr.loaded / xhr.total) * 100);
-            console.log(`بارگذاری: ${loadingPercentage}%`);
+            const loadingPercentage = xhr.lengthComputable ? 
+                Math.round((xhr.loaded / xhr.total) * 100) : 
+                Math.round(xhr.loaded / 1024) + 'KB';
+            
+            console.log(`بارگذاری: ${loadingPercentage}`);
             loadingIndicator.textContent = `در حال بارگذاری مدل: ${loadingPercentage}%`;
         },
         // خطا
         (error) => {
             console.error('خطا در بارگذاری مدل:', error);
-            alert(`خطا در بارگذاری مدل ${file}: ${error.message}`);
+            alert(`خطا در بارگذاری مدل ${file}: ${error.message}\nلطفاً مطمئن شوید که فایل در مسیر models وجود دارد.`);
             hideLoading();
         }
     );
@@ -275,21 +290,6 @@ function loadUploadedModel(file) {
         const reader = new FileReader();
         
         reader.onload = function(event) {
-            const arrayBuffer = event.target.result;
-            
-            // تبدیل ArrayBuffer به Blob URL برای سازگاری بیشتر
-            const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
-            const blobURL = URL.createObjectURL(blob);
-            
-            loadingIndicator.textContent = "در حال بارگذاری مدل...";
-            
-            // استفاده از URL برای بارگذاری مدل
-            loader.load(blobURL, 
-                // موفقیت
-                (gltf) => {
-                    currentModel = gltf.scene;
-                    optimizeModel(currentModel, true);
-                    scene.add(currentModel);
                     fitCameraToModel(currentModel);
                     addUploadedFileToList(file.name);
                     hideLoading();
