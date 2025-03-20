@@ -290,6 +290,21 @@ function loadUploadedModel(file) {
         const reader = new FileReader();
         
         reader.onload = function(event) {
+            const arrayBuffer = event.target.result;
+            
+            // تبدیل ArrayBuffer به Blob URL برای سازگاری بیشتر
+            const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
+            const blobURL = URL.createObjectURL(blob);
+            
+            loadingIndicator.textContent = "در حال بارگذاری مدل...";
+            
+            // استفاده از URL برای بارگذاری مدل
+            loader.load(blobURL, 
+                // موفقیت
+                (gltf) => {
+                    currentModel = gltf.scene;
+                    optimizeModel(currentModel, true);
+                    scene.add(currentModel);
                     fitCameraToModel(currentModel);
                     addUploadedFileToList(file.name);
                     hideLoading();
@@ -322,7 +337,6 @@ function loadUploadedModel(file) {
         // خواندن فایل به عنوان ArrayBuffer
         reader.readAsArrayBuffer(file);
     } else {
-        // روش قبلی برای فایل‌های GLTF
         const reader = new FileReader();
         
         reader.onload = function(event) {
@@ -414,20 +428,94 @@ function addUploadedFileToList(fileName) {
 
 // بارگذاری لیست فایل‌ها
 const fileListDiv = document.getElementById('file-list');
-fetch('models/files.json')
-    .then(response => response.json())
-    .then(files => {
-        files.forEach(file => {
-            const p = document.createElement('p');
-            p.textContent = file;
-            p.addEventListener('click', () => loadModel(file));
-            fileListDiv.appendChild(p);
+const fileListLoading = document.getElementById('file-list-loading');
+
+// حذف پیام "درحال بارگذاری..." در صورت وجود
+if (fileListLoading) {
+    fileListLoading.remove();
+}
+
+// تلاش برای بارگذاری فایل‌های JSON با مدیریت خطای بهتر
+function loadFileList() {
+    console.log('تلاش برای بارگذاری لیست فایل‌ها...');
+    
+    // اضافه کردن پیام بارگذاری موقت
+    const loadingItem = document.createElement('p');
+    loadingItem.id = 'file-list-loading-temp';
+    loadingItem.textContent = 'در حال بارگذاری لیست فایل‌ها...';
+    fileListDiv.appendChild(loadingItem);
+    
+    // مسیر فایل JSON را به صورت مطلق می‌سازیم تا مطمئن شویم فایل پیدا می‌شود
+    const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+    const jsonUrl = new URL('models/files.json', baseUrl).href;
+    
+    console.log(`بارگذاری لیست فایل‌ها از: ${jsonUrl}`);
+    
+    fetch(jsonUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`خطای HTTP: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(files => {
+            console.log(`${files.length} فایل یافت شد:`);
+            console.log(files);
+            
+            // حذف پیام بارگذاری
+            const loadingTemp = document.getElementById('file-list-loading-temp');
+            if (loadingTemp) loadingTemp.remove();
+            
+            if (files && files.length > 0) {
+                files.forEach(file => {
+                    const p = document.createElement('p');
+                    p.textContent = file;
+                    p.addEventListener('click', () => loadModel(file));
+                    fileListDiv.appendChild(p);
+                });
+            } else {
+                showNoFilesMessage();
+            }
+        })
+        .catch(error => {
+            console.error('خطا در بارگذاری لیست فایل‌ها:', error);
+            
+            // حذف پیام بارگذاری
+            const loadingTemp = document.getElementById('file-list-loading-temp');
+            if (loadingTemp) loadingTemp.remove();
+            
+            // نمایش پیام خطا در لیست فایل‌ها
+            const errorItem = document.createElement('p');
+            errorItem.textContent = `خطا در بارگذاری لیست فایل‌ها: ${error.message}`;
+            errorItem.style.color = 'red';
+            fileListDiv.appendChild(errorItem);
+            
+            // افزودن راهنمایی برای ساختار فایل JSON
+            const helpItem = document.createElement('p');
+            helpItem.innerHTML = 'لطفاً فایل <code>models/files.json</code> را بررسی کنید.<br>این فایل باید شامل آرایه‌ای از نام‌های فایل باشد.';
+            fileListDiv.appendChild(helpItem);
+            
+            // افزودن نمونه JSON
+            const exampleItem = document.createElement('p');
+            exampleItem.innerHTML = '<code>["model1.glb", "model2.glb", "sample.gltf"]</code>';
+            fileListDiv.appendChild(exampleItem);
         });
-    })
-    .catch(error => {
-        console.error('خطا در بارگذاری لیست فایل‌ها:', error);
-        // در صورت خطا، ادامه می‌دهیم تا حداقل بخش آپلود فایل کار کند
-    });
+}
+
+// نمایش پیام "فایلی یافت نشد"
+function showNoFilesMessage() {
+    const noFilesItem = document.createElement('p');
+    noFilesItem.textContent = 'هیچ فایلی در لیست یافت نشد.';
+    noFilesItem.style.fontStyle = 'italic';
+    fileListDiv.appendChild(noFilesItem);
+    
+    const helpItem = document.createElement('p');
+    helpItem.textContent = 'فایل‌های خود را با دکمه بالا آپلود کنید یا فایل models/files.json را ویرایش نمایید.';
+    fileListDiv.appendChild(helpItem);
+}
+
+// فراخوانی تابع بارگذاری لیست فایل‌ها
+loadFileList();
 
 // اضافه کردن مدیریت رویداد برای آپلود فایل
 document.addEventListener('DOMContentLoaded', function() {
@@ -480,6 +568,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // نمایش اولیه دمای رنگ
     updateTemperatureDisplay(parseInt(document.getElementById('light-temperature').value));
+    
+    // بررسی وجود پوشه models
+    fetch('models/')
+        .then(response => {
+            if (!response.ok) {
+                console.warn('پوشه models وجود ندارد یا در دسترس نیست.');
+                // افزودن هشدار به صفحه
+                const warningItem = document.createElement('p');
+                warningItem.textContent = 'هشدار: پوشه models یافت نشد. لطفاً آن را ایجاد کنید.';
+                warningItem.style.color = 'orange';
+                fileListDiv.appendChild(warningItem);
+            }
+        })
+        .catch(err => {
+            console.warn('خطا در بررسی پوشه models:', err);
+        });
 });
 
 // حلقه انیمیشن برای رندر مداوم
