@@ -151,21 +151,11 @@ controls.maxDistance = 100;
 const loader = new THREE.GLTFLoader();
 let currentModel = null;
 
-// بهبود عملکرد لودر GLB - اصلاح خطای Draco Loader
+// بهبود عملکرد لودر GLB - غیرفعال کردن Draco Loader برای جلوگیری از خطا
 function enhanceGLTFLoader() {
-    // بررسی وجود DRACOLoader قبل از استفاده
-    if (typeof THREE.DRACOLoader === 'function') {
-        try {
-            const dracoLoader = new THREE.DRACOLoader();
-            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
-            loader.setDRACOLoader(dracoLoader);
-            console.log('DRACOLoader با موفقیت تنظیم شد.');
-        } catch (e) {
-            console.warn('خطا در تنظیم DRACOLoader:', e);
-        }
-    } else {
-        console.warn('DRACOLoader موجود نیست. مدل‌های فشرده‌سازی شده با Draco ممکن است به درستی بارگذاری نشوند.');
-    }
+    console.log('تنظیم GLTFLoader بدون Draco Loader');
+    // Draco Loader را غیرفعال می‌کنیم چون باعث خطا می‌شود
+    // و برای فایل‌های استاندارد نیازی به آن نیست
 }
 
 // تلاش برای بهبود لودر
@@ -175,7 +165,7 @@ try {
     console.log('Draco loader not available:', e);
 }
 
-// تابع بارگذاری مدل با پشتیبانی بهتر برای GLB - ساده‌سازی شده
+// تابع بارگذاری مدل با پشتیبانی بهتر برای GLB - با مدیریت خطای بهبود یافته
 function loadModel(file) {
     if (currentModel) {
         scene.remove(currentModel);
@@ -185,7 +175,7 @@ function loadModel(file) {
     showLoading();
     console.log(`در حال بارگذاری مدل: ${file}`);
     
-    // مسیر مستقیم فایل بدون بررسی اولیه
+    // مسیر مستقیم فایل
     const modelPath = `models/${file}`;
     
     console.log(`تلاش برای بارگذاری مدل از مسیر: ${modelPath}`);
@@ -202,39 +192,96 @@ function loadModel(file) {
             
             console.log(`فایل ${modelPath} یافت شد. در حال بارگذاری...`);
             
-            // بارگذاری مستقیم مدل
-            loader.load(modelPath, 
-                // موفقیت
-                (gltf) => {
-                    console.log(`مدل ${file} با موفقیت بارگذاری شد.`, gltf);
-                    currentModel = gltf.scene;
-                    optimizeModel(currentModel, file.toLowerCase().endsWith('.glb'));
-                    scene.add(currentModel);
-                    fitCameraToModel(currentModel);
-                    hideLoading();
-                }, 
-                // پیشرفت
-                (xhr) => {
-                    const loadingPercentage = xhr.lengthComputable ? 
-                        Math.round((xhr.loaded / xhr.total) * 100) : 
-                        Math.round(xhr.loaded / 1024) + 'KB';
+            // بررسی اندازه فایل
+            return fetch(modelPath)
+                .then(response => {
+                    // نمایش اطلاعات فایل
+                    const fileSize = response.headers.get('content-length');
+                    console.log(`اندازه فایل ${file}: ${fileSize} بایت`);
                     
-                    console.log(`بارگذاری ${file}: ${loadingPercentage}`);
-                    loadingIndicator.textContent = `در حال بارگذاری مدل: ${loadingPercentage}%`;
-                },
-                // خطا
-                (error) => {
-                    console.error('خطا در بارگذاری مدل:', error);
-                    alert(`خطا در بارگذاری مدل ${file}\nمسیر: ${modelPath}\nخطا: ${error.message}`);
-                    hideLoading();
-                }
-            );
+                    if (fileSize === null || parseInt(fileSize) < 100) {
+                        throw new Error(`فایل ${file} خالی یا بسیار کوچک است (${fileSize} بایت)`);
+                    }
+                    
+                    // بارگذاری مدل
+                    loader.load(modelPath, 
+                        // موفقیت
+                        (gltf) => {
+                            console.log(`مدل ${file} با موفقیت بارگذاری شد.`, gltf);
+                            currentModel = gltf.scene;
+                            optimizeModel(currentModel, file.toLowerCase().endsWith('.glb'));
+                            scene.add(currentModel);
+                            fitCameraToModel(currentModel);
+                            hideLoading();
+                        }, 
+                        // پیشرفت
+                        (xhr) => {
+                            const loadingPercentage = xhr.lengthComputable ? 
+                                Math.round((xhr.loaded / xhr.total) * 100) : 
+                                Math.round(xhr.loaded / 1024) + 'KB';
+                            
+                            console.log(`بارگذاری ${file}: ${loadingPercentage}`);
+                            loadingIndicator.textContent = `در حال بارگذاری مدل: ${loadingPercentage}%`;
+                        },
+                        // خطا
+                        (error) => {
+                            console.error('خطا در بارگذاری مدل:', error);
+                            loadFallbackModel(file, error);
+                        }
+                    );
+                });
         })
         .catch(error => {
             console.error('خطا در بررسی وجود فایل:', error);
             alert(`خطا در دسترسی به فایل ${file}: ${error.message}`);
             hideLoading();
         });
+}
+
+// تابع بارگذاری مدل جایگزین در صورت خطا
+function loadFallbackModel(originalFile, originalError) {
+    console.log(`تلاش برای بارگذاری مدل جایگزین به جای ${originalFile}`);
+    
+    // می‌توانیم یک مدل پیش‌فرض را بارگذاری کنیم
+    const fallbackFile = 'fallback-cube.glb'; // یک مدل ساده مکعب
+    const fallbackPath = `models/${fallbackFile}`;
+    
+    alert(`خطا در بارگذاری مدل ${originalFile}: ${originalError.message}\n\nاین ممکن است به دلیل خراب بودن فایل یا ناسازگاری آن با نمایشگر باشد.`);
+    
+    // ایجاد یک جعبه ساده به عنوان جایگزین
+    const geometry = new THREE.BoxGeometry(5, 5, 5);
+    const material = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+    const cube = new THREE.Mesh(geometry, material);
+    
+    currentModel = cube;
+    scene.add(cube);
+    
+    // نمایش متن خطا روی مکعب
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.font = 'bold 24px Arial';
+    context.fillStyle = '#ff0000';
+    context.textAlign = 'center';
+    context.fillText('خطا در بارگذاری مدل', canvas.width/2, canvas.height/2 - 20);
+    context.font = '18px Arial';
+    context.fillText(originalFile, canvas.width/2, canvas.height/2 + 10);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    const errorMaterial = new THREE.MeshBasicMaterial({ map: texture });
+    
+    // اضافه کردن صفحه متن خطا
+    const plane = new THREE.Mesh(
+        new THREE.PlaneGeometry(8, 8),
+        errorMaterial
+    );
+    plane.position.z = 2.51;
+    cube.add(plane);
+    
+    hideLoading();
 }
 
 // تابع جدید برای بارگذاری مدل از مسیر
@@ -509,7 +556,8 @@ function loadFileList() {
     fileListDiv.appendChild(helpDiv);
     
     // تنظیم مستقیم لیست فایل‌ها بدون بررسی وجود
-    const files = ["model1.gltf", "model2.glb", "sample.gltf"];
+    // برای آزمایش، یک فایل مکعب ساده را اضافه می‌کنیم
+    const files = ["model1.gltf", "model2.glb", "sample.gltf", "cube.glb"];
     
     console.log(`${files.length} فایل تنظیم شد:`, files);
     
@@ -599,7 +647,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const file = event.target.files[0];
             if (file) {
                 const lowerFileName = file.name.toLowerCase();
-                if (lowerFileName.endsWith('.gltf') || lowerFileName.endsWith('.glb')) {
+                اگر lowerFileName.endsWith('.gltf') || lowerFileName.endsWith('.glb')) {
                     loadUploadedModel(file);
                 } else {
                     alert('لطفاً فقط فایل‌های با پسوند .gltf یا .glb انتخاب کنید.');
