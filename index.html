@@ -1,350 +1,40 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="fa">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نمایشگر مدل‌های سه‌بعدی</title>
+    <title>نمایشگر سه‌بعدی حرفه‌ای</title>
     <style>
-        body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; }
-        #container { width: 100%; height: 100vh; position: relative; }
-        #model-viewer { width: 100%; height: 100%; background: #f0f0f0; }
-        #loading { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(255,255,255,0.8); padding: 15px 25px; border-radius: 10px;
-            display: none; z-index: 100;
-        }
-        #sidebar {
-            position: absolute; top: 10px; right: 10px; width: 200px;
-            background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        #sidebar h3 {
-            margin-top: 0; border-bottom: 1px solid #ccc; padding-bottom: 5px;
-            text-align: center;
-        }
-        .model-link {
-            display: block; margin: 10px 0; cursor: pointer;
-            color: blue; text-decoration: underline;
-        }
-        #upload-btn {
-            display: block; width: 100%; padding: 8px; margin: 10px 0;
-            background: #4CAF50; color: white; border: none; border-radius: 4px;
-            cursor: pointer;
-        }
-        #info {
-            position: absolute; bottom: 10px; left: 10px; background: rgba(255,255,255,0.7);
-            padding: 5px 10px; border-radius: 3px; font-size: 12px;
-        }
+        body { margin: 0; font-family: Arial, sans-serif; direction: rtl; }
+        #scene { width: 80%; height: 100vh; float: left; }
+        #sidebar { width: 20%; height: 100vh; float: right; overflow-y: auto; padding: 10px; background: #f0f0f0; }
+        #file-list p { cursor: pointer; padding: 5px; }
+        #file-list p:hover { background: #ddd; }
+        #light-controls { margin-top: 20px; }
+        #light-controls label { display: block; margin: 5px 0; }
     </style>
 </head>
 <body>
-    <div id="container">
-        <div id="model-viewer"></div>
-        <div id="loading">در حال بارگذاری...</div>
-        
-        <div id="sidebar">
-            <h3>مدل‌های سه‌بعدی</h3>
-            <button id="upload-btn">انتخاب فایل سه‌بعدی</button>
-            <div id="model-list"></div>
+    <div id="scene"></div>
+    <div id="sidebar">
+        <h3>لیست فایل‌ها</h3>
+        <div id="file-list"></div>
+        <div id="light-controls">
+            <label for="light-x">موقعیت X نور:</label>
+            <input type="range" id="light-x" min="-10" max="10" value="0">
+            <label for="light-y">موقعیت Y نور:</label>
+            <input type="range" id="light-y" min="-10" max="10" value="1">
+            <label for="light-z">موقعیت Z نور:</label>
+            <input type="range" id="light-z" min="-10" max="10" value="1">
+            <label for="light-color">رنگ نور:</label>
+            <input type="color" id="light-color" value="#ffffff">
         </div>
-        
-        <div id="info">برای چرخاندن مدل، کلیک کرده و درگ کنید. برای زوم، از چرخ موس استفاده کنید.</div>
     </div>
 
-    <!-- کتابخانه Three.js -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
-
-    <!-- اسکریپت اصلی -->
-    <script>
-        // متغیرهای اصلی
-        let scene, camera, renderer, controls, model;
-        const container = document.getElementById('model-viewer');
-        const loading = document.getElementById('loading');
-        const modelList = document.getElementById('model-list');
-
-        // راه‌اندازی صحنه اصلی
-        function init() {
-            // ایجاد صحنه
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xf0f0f0);
-
-            // دوربین
-            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
-            camera.position.set(0, 0, 5);
-
-            // رندرر
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(container.clientWidth, container.clientHeight);
-            container.appendChild(renderer.domElement);
-
-            // کنترل‌ها
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-            controls.screenSpacePanning = false;
-            controls.enableZoom = true;
-            controls.enableRotate = true;
-
-            // افزودن نور
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-            scene.add(ambientLight);
-
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(1, 1, 1);
-            scene.add(directionalLight);
-
-            // نمایش یک مکعب اولیه
-            const geometry = new THREE.BoxGeometry(1, 1, 1);
-            const material = new THREE.MeshStandardMaterial({ color: 0x44aa88 });
-            model = new THREE.Mesh(geometry, material);
-            scene.add(model);
-
-            // رویداد تغییر اندازه
-            window.addEventListener('resize', () => {
-                camera.aspect = container.clientWidth / container.clientHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(container.clientWidth, container.clientHeight);
-            });
-
-            // راه‌اندازی انیمیشن
-            animate();
-
-            // بارگذاری لیست مدل‌ها
-            loadModelsFromFolder();
-
-            // رویداد دکمه آپلود - اضافه فایل به پوشه models
-            document.getElementById('upload-btn').addEventListener('click', () => {
-                alert('لطفاً فایل‌های GLB یا GLTF خود را در پوشه models قرار دهید تا در لیست نمایش داده شوند.');
-            });
-        }
-
-        // حلقه انیمیشن
-        function animate() {
-            requestAnimationFrame(animate);
-            if (controls) controls.update();
-            renderer.render(scene, camera);
-        }
-
-        // بارگذاری مدل از فایل
-        function loadModelFromFile(file) {
-            loading.style.display = 'block';
-            
-            if (model) {
-                scene.remove(model);
-                model = null;
-            }
-
-            const loader = new THREE.GLTFLoader();
-            const fileURL = URL.createObjectURL(file);
-            
-            loader.load(fileURL, 
-                function(gltf) {
-                    model = gltf.scene;
-                    centerModel(model);
-                    scene.add(model);
-                    loading.style.display = 'none';
-                    URL.revokeObjectURL(fileURL);
-                },
-                function(xhr) {
-                    const percent = xhr.loaded / xhr.total * 100;
-                    loading.textContent = `بارگذاری: ${Math.round(percent)}%`;
-                },
-                function(error) {
-                    console.error('خطا در بارگذاری مدل:', error);
-                    loading.textContent = 'خطا در بارگذاری مدل';
-                    setTimeout(() => { loading.style.display = 'none'; }, 2000);
-                    URL.revokeObjectURL(fileURL);
-                }
-            );
-        }
-
-        // بارگذاری مدل از URL
-        function loadModelFromURL(url) {
-            loading.style.display = 'block';
-            
-            if (model) {
-                scene.remove(model);
-                model = null;
-            }
-
-            const loader = new THREE.GLTFLoader();
-            
-            loader.load(url, 
-                function(gltf) {
-                    model = gltf.scene;
-                    centerModel(model);
-                    scene.add(model);
-                    loading.style.display = 'none';
-                },
-                function(xhr) {
-                    const percent = xhr.loaded / xhr.total * 100;
-                    loading.textContent = `بارگذاری: ${Math.round(percent)}%`;
-                },
-                function(error) {
-                    console.error('خطا در بارگذاری مدل:', error);
-                    loading.textContent = 'خطا در بارگذاری مدل';
-                    setTimeout(() => { loading.style.display = 'none'; }, 2000);
-                }
-            );
-        }
-
-        // تراز کردن مدل در مرکز صحنه
-        function centerModel(model) {
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            model.position.x -= center.x;
-            model.position.y -= center.y;
-            model.position.z -= center.z;
-            
-            const size = box.getSize(new THREE.Vector3());
-            const maxSize = Math.max(size.x, size.y, size.z);
-            if (maxSize > 0) {
-                const scale = 2 / maxSize;
-                model.scale.set(scale, scale, scale);
-            }
-        }
-
-        // بارگذاری لیست مدل‌ها
-        function loadModelList() {
-            loadModelsFromFolder();
-        }
-
-        // تابع بهبود یافته برای اسکن پوشه models
-        function loadModelsFromFolder() {
-            // پاک کردن لیست قبلی
-            modelList.innerHTML = '<div style="text-align: center; color: #666; margin: 10px 0;">در حال بررسی فایل‌ها...</div>';
-            
-            console.log("شروع جستجوی فایل‌های مدل در پوشه models...");
-            
-            // اضافه کردن دکمه آپلود مستقیم در ابتدای لیست
-            const uploadForm = document.createElement('div');
-            uploadForm.innerHTML = `
-                <div style="margin: 15px 0; text-align: center;">
-                    <input type="file" id="direct-file-input" accept=".glb,.gltf" style="display: none;">
-                    <button id="direct-upload-btn" style="padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%;">
-                        آپلود فایل سه‌بعدی
-                    </button>
-                    <div style="margin-top: 8px; font-size: 12px; color: #555; text-align: center;">
-                        این روش در تمام مرورگرها کار می‌کند
-                    </div>
-                </div>
-            `;
-            modelList.appendChild(uploadForm);
-            
-            // رویداد دکمه آپلود مستقیم
-            document.getElementById('direct-upload-btn').addEventListener('click', () => {
-                document.getElementById('direct-file-input').click();
-            });
-            
-            // رویداد انتخاب فایل
-            document.getElementById('direct-file-input').addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    console.log(`فایل انتخاب شده: ${file.name}`);
-                    loadModelFromFile(file);
-                    
-                    // اضافه کردن فایل انتخاب شده به لیست
-                    const selectedFileInfo = document.createElement('div');
-                    selectedFileInfo.style.margin = '10px 0';
-                    selectedFileInfo.style.padding = '8px';
-                    selectedFileInfo.style.backgroundColor = '#e8f5e9';
-                    selectedFileInfo.style.borderRadius = '4px';
-                    selectedFileInfo.style.fontSize = '13px';
-                    selectedFileInfo.innerHTML = `<strong>فایل بارگذاری شده:</strong> ${file.name}`;
-                    
-                    // جایگزینی یا اضافه کردن به لیست
-                    const existingFileInfo = modelList.querySelector('[data-loaded-file]');
-                    if (existingFileInfo) {
-                        existingFileInfo.innerHTML = selectedFileInfo.innerHTML;
-                    } else {
-                        selectedFileInfo.setAttribute('data-loaded-file', 'true');
-                        const afterUploadBtn = document.getElementById('direct-upload-btn').parentNode.parentNode;
-                        afterUploadBtn.after(selectedFileInfo);
-                    }
-                }
-            });
-            
-            // مدل‌های پیش‌فرض آنلاین
-            const defaultModels = [
-                { name: 'مکعب (نمونه آنلاین)', url: 'https://threejs.org/examples/models/gltf/cube/cube.gltf' },
-                { name: 'روبات (نمونه آنلاین)', url: 'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb' }
-            ];
-
-            // نتایج نهایی
-            const foundFiles = [];
-            
-            // راهنمای نحوه اضافه کردن فایل به پوشه
-            const helpSection = document.createElement('div');
-            helpSection.innerHTML = `
-                <div style="margin: 20px 0 10px; font-weight: bold; color: #555; border-top: 1px solid #ddd; padding-top: 10px;">
-                    راهنمای استفاده از فایل‌های موجود
-                </div>
-                <div style="background-color: #fff9c4; padding: 10px; border-radius: 4px; font-size: 12px; margin-bottom: 15px;">
-                    <p><strong>برای استفاده از فایل‌های داخل پوشه models:</strong></p>
-                    <ol style="padding-right: 20px; margin: 5px 0;">
-                        <li>این صفحه را با یک سرور وب محلی اجرا کنید (اگر مستقیم باز کرده‌اید، امکان دسترسی به پوشه وجود ندارد)</li>
-                        <li>یا از دکمه "آپلود فایل سه‌بعدی" در بالا استفاده کنید</li>
-                    </ol>
-                </div>
-            `;
-            modelList.appendChild(helpSection);
-            
-            // اضافه کردن مدل‌های پیش‌فرض آنلاین
-            const defaultSection = document.createElement('div');
-            defaultSection.innerHTML = `
-                <div style="margin: 15px 0 5px; font-weight: bold; color: #555;">
-                    مدل‌های آنلاین:
-                </div>
-            `;
-            modelList.appendChild(defaultSection);
-            
-            defaultModels.forEach(model => {
-                const link = document.createElement('a');
-                link.className = 'model-link';
-                link.textContent = model.name;
-                link.onclick = () => loadModelFromURL(model.url);
-                modelList.appendChild(link);
-            });
-            
-            // توضیح مشکل دسترسی به پوشه
-            const noteSection = document.createElement('div');
-            noteSection.style.marginTop = '20px';
-            noteSection.style.fontSize = '11px';
-            noteSection.style.color = '#666';
-            noteSection.style.borderTop = '1px solid #ddd';
-            noteSection.style.paddingTop = '10px';
-            noteSection.innerHTML = `
-                <p><strong>نکته مهم:</strong> به دلایل امنیتی، اگر صفحه را مستقیماً با مرورگر باز کرده‌اید (با کلیک روی فایل HTML)، 
-                امکان دسترسی به فایل‌های پوشه models وجود ندارد. برای حل این مشکل:</p>
-                <ul style="padding-right: 20px; margin: 5px 0;">
-                    <li>از یک سرور وب محلی استفاده کنید، یا</li>
-                    <li>از دکمه "آپلود فایل سه‌بعدی" استفاده کنید</li>
-                </ul>
-            `;
-            modelList.appendChild(noteSection);
-        }
-
-        // حذف یا تغییر رویداد دکمه upload-btn
-        document.addEventListener('DOMContentLoaded', () => {
-            const mainUploadBtn = document.getElementById('upload-btn');
-            if (mainUploadBtn) {
-                mainUploadBtn.addEventListener('click', () => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = '.glb,.gltf';
-                    input.onchange = (e) => {
-                        const file = e.target.files[0];
-                        if (file) loadModelFromFile(file);
-                    };
-                    input.click();
-                });
-            }
-        });
-        
-        // شروع برنامه
-        window.onload = init;
-    </script>
+    <!-- افزودن کتابخانه‌های Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
