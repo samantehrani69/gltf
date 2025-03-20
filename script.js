@@ -151,14 +151,20 @@ controls.maxDistance = 100;
 const loader = new THREE.GLTFLoader();
 let currentModel = null;
 
-// بهبود عملکرد لودر GLB
+// بهبود عملکرد لودر GLB - اصلاح خطای Draco Loader
 function enhanceGLTFLoader() {
-    // افزایش حافظه برای فایل‌های بزرگتر
-    THREE.DRACOLoader.getDecoderModule = () => {};
-    if (THREE.DRACOLoader && THREE.DRACOLoader.setDecoderPath) {
-        const dracoLoader = new THREE.DRACOLoader();
-        dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
-        loader.setDRACOLoader(dracoLoader);
+    // بررسی وجود DRACOLoader قبل از استفاده
+    if (typeof THREE.DRACOLoader === 'function') {
+        try {
+            const dracoLoader = new THREE.DRACOLoader();
+            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+            loader.setDRACOLoader(dracoLoader);
+            console.log('DRACOLoader با موفقیت تنظیم شد.');
+        } catch (e) {
+            console.warn('خطا در تنظیم DRACOLoader:', e);
+        }
+    } else {
+        console.warn('DRACOLoader موجود نیست. مدل‌های فشرده‌سازی شده با Draco ممکن است به درستی بارگذاری نشوند.');
     }
 }
 
@@ -182,32 +188,53 @@ function loadModel(file) {
     // مسیر مستقیم فایل بدون بررسی اولیه
     const modelPath = `models/${file}`;
     
-    // بارگذاری مستقیم مدل
-    loader.load(modelPath, 
-        // موفقیت
-        (gltf) => {
-            currentModel = gltf.scene;
-            optimizeModel(currentModel, file.toLowerCase().endsWith('.glb'));
-            scene.add(currentModel);
-            fitCameraToModel(currentModel);
-            hideLoading();
-        }, 
-        // پیشرفت
-        (xhr) => {
-            const loadingPercentage = xhr.lengthComputable ? 
-                Math.round((xhr.loaded / xhr.total) * 100) : 
-                Math.round(xhr.loaded / 1024) + 'KB';
+    console.log(`تلاش برای بارگذاری مدل از مسیر: ${modelPath}`);
+    
+    // بررسی وجود فایل قبل از بارگذاری
+    fetch(modelPath, { method: 'HEAD' })
+        .then(response => {
+            if (!response.ok) {
+                console.error(`خطا: فایل ${modelPath} یافت نشد (${response.status})`);
+                alert(`خطا: فایل مدل "${file}" در مسیر ${modelPath} یافت نشد.\n\nلطفاً از وجود این فایل در پوشه models اطمینان حاصل کنید.`);
+                hideLoading();
+                return;
+            }
             
-            console.log(`بارگذاری: ${loadingPercentage}`);
-            loadingIndicator.textContent = `در حال بارگذاری مدل: ${loadingPercentage}%`;
-        },
-        // خطا
-        (error) => {
-            console.error('خطا در بارگذاری مدل:', error);
-            alert(`خطا در بارگذاری مدل ${file}\nمسیر: ${modelPath}\nخطا: ${error.message}`);
+            console.log(`فایل ${modelPath} یافت شد. در حال بارگذاری...`);
+            
+            // بارگذاری مستقیم مدل
+            loader.load(modelPath, 
+                // موفقیت
+                (gltf) => {
+                    console.log(`مدل ${file} با موفقیت بارگذاری شد.`, gltf);
+                    currentModel = gltf.scene;
+                    optimizeModel(currentModel, file.toLowerCase().endsWith('.glb'));
+                    scene.add(currentModel);
+                    fitCameraToModel(currentModel);
+                    hideLoading();
+                }, 
+                // پیشرفت
+                (xhr) => {
+                    const loadingPercentage = xhr.lengthComputable ? 
+                        Math.round((xhr.loaded / xhr.total) * 100) : 
+                        Math.round(xhr.loaded / 1024) + 'KB';
+                    
+                    console.log(`بارگذاری ${file}: ${loadingPercentage}`);
+                    loadingIndicator.textContent = `در حال بارگذاری مدل: ${loadingPercentage}%`;
+                },
+                // خطا
+                (error) => {
+                    console.error('خطا در بارگذاری مدل:', error);
+                    alert(`خطا در بارگذاری مدل ${file}\nمسیر: ${modelPath}\nخطا: ${error.message}`);
+                    hideLoading();
+                }
+            );
+        })
+        .catch(error => {
+            console.error('خطا در بررسی وجود فایل:', error);
+            alert(`خطا در دسترسی به فایل ${file}: ${error.message}`);
             hideLoading();
-        }
-    );
+        });
 }
 
 // تابع جدید برای بارگذاری مدل از مسیر
@@ -469,6 +496,18 @@ function loadFileList() {
     // پاک کردن لیست قبلی
     fileListDiv.innerHTML = '';
     
+    // اضافه کردن راهنما در بالای لیست
+    const helpDiv = document.createElement('div');
+    helpDiv.style.padding = '8px';
+    helpDiv.style.marginBottom = '10px';
+    helpDiv.style.backgroundColor = '#e6f7ff';
+    helpDiv.style.border = '1px solid #91d5ff';
+    helpDiv.style.borderRadius = '4px';
+    helpDiv.innerHTML = `
+        <p style="margin-top: 0;"><strong>راهنما:</strong> فایل‌های زیر باید در پوشه models قرار داشته باشند:</p>
+    `;
+    fileListDiv.appendChild(helpDiv);
+    
     // تنظیم مستقیم لیست فایل‌ها بدون بررسی وجود
     const files = ["model1.gltf", "model2.glb", "sample.gltf"];
     
@@ -478,7 +517,25 @@ function loadFileList() {
         const p = document.createElement('p');
         p.textContent = file;
         p.style.cursor = 'pointer';
-        p.addEventListener('click', () => loadModel(file));
+        
+        // بررسی وجود فایل
+        fetch(`models/${file}`, { method: 'HEAD' })
+            .then(response => {
+                if (response.ok) {
+                    p.style.color = 'green';
+                    p.innerHTML = `✓ ${file} <span style="font-size: 0.8em">(موجود)</span>`;
+                    p.addEventListener('click', () => loadModel(file));
+                } else {
+                    p.style.color = 'red';
+                    p.innerHTML = `✗ ${file} <span style="font-size: 0.8em">(موجود نیست)</span>`;
+                }
+            })
+            .catch(error => {
+                p.style.color = 'red';
+                p.innerHTML = `✗ ${file} <span style="font-size: 0.8em">(خطا در بررسی)</span>`;
+                console.error(`خطا در بررسی فایل ${file}:`, error);
+            });
+        
         fileListDiv.appendChild(p);
     });
 }
