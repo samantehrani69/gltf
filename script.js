@@ -130,42 +130,82 @@ controls.dampingFactor = 0.25;
 controls.minDistance = 1;
 controls.maxDistance = 100;
 
-// لودر فایل‌های GLTF/GLB
+// لودر فایل‌های GLTF/GLB با قابلیت پشتیبانی بهتر از GLB
 const loader = new THREE.GLTFLoader();
 let currentModel = null;
 
-// تابع بارگذاری مدل
+// تابع بارگذاری مدل با پشتیبانی بهتر برای GLB
 function loadModel(file) {
     if (currentModel) {
         scene.remove(currentModel);
     }
+    
+    // نمایش لودینگ یا وضعیت بارگذاری
+    console.log(`در حال بارگذاری مدل: ${file}`);
+    
     loader.load(`models/${file}`, (gltf) => {
         currentModel = gltf.scene;
+        
+        // بهینه‌سازی مدل و اعمال مقیاس مناسب
+        optimizeModel(currentModel, file.endsWith('.glb'));
+        
         scene.add(currentModel);
         
         // تنظیم دوربین برای نمایش کامل مدل
         fitCameraToModel(currentModel);
-    }, undefined, (error) => {
+    }, 
+    (xhr) => {
+        // نمایش پیشرفت بارگذاری
+        const loadingPercentage = Math.round((xhr.loaded / xhr.total) * 100);
+        console.log(`بارگذاری: ${loadingPercentage}%`);
+    },
+    (error) => {
         console.error('خطا در بارگذاری مدل:', error);
+        alert(`خطا در بارگذاری مدل ${file}: ${error.message}`);
     });
 }
 
-// تابع برای تنظیم خودکار دوربین روی مدل
-function fitCameraToModel(model) {
-    const box = new THREE.Box3().setFromObject(model);
-    const size = box.getSize(new THREE.Vector3()).length();
-    const center = box.getCenter(new THREE.Vector3());
-    
-    model.position.x = -center.x;
-    model.position.y = -center.y;
-    model.position.z = -center.z;
-    
-    camera.position.set(0, 0, size * 2);
-    camera.lookAt(0, 0, 0);
-    controls.update();
+// بهینه‌سازی مدل با توجه به نوع فایل
+function optimizeModel(model, isGLB) {
+    // تنظیمات مخصوص برای فایل‌های GLB
+    if (isGLB) {
+        // تنظیم مقیاس مناسب برای GLB
+        // برخی فایل‌های GLB ممکن است مقیاس بسیار بزرگ یا کوچک داشته باشند
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3());
+        
+        // اگر اندازه مدل بسیار بزرگ یا بسیار کوچک است، آن را مقیاس‌بندی می‌کنیم
+        const maxDimension = Math.max(size.x, size.y, size.z);
+        if (maxDimension > 100 || maxDimension < 0.1) {
+            const scale = 10 / maxDimension;
+            model.scale.set(scale, scale, scale);
+        }
+        
+        // فعال کردن سایه‌ها برای مواد موجود در مدل
+        model.traverse(function(node) {
+            if (node.isMesh) {
+                node.castShadow = true;
+                node.receiveShadow = true;
+                
+                // بهبود مواد برای نمایش بهتر
+                if (node.material) {
+                    // افزایش کیفیت بازتاب نور برای مواد
+                    if (Array.isArray(node.material)) {
+                        node.material.forEach(mat => {
+                            mat.roughness = Math.min(mat.roughness || 0.7, 0.7);
+                            mat.metalness = Math.max(mat.metalness || 0.3, 0.3);
+                        });
+                    } else {
+                        node.material.roughness = Math.min(node.material.roughness || 0.7, 0.7);
+                        node.material.metalness = Math.max(node.material.metalness || 0.3, 0.3);
+                    }
+                }
+            }
+        });
+    }
 }
 
-// تابع بارگذاری مدل از فایل آپلود شده
+// تابع بارگذاری مدل از فایل آپلود شده با پشتیبانی بهتر از GLB
 function loadUploadedModel(file) {
     if (currentModel) {
         scene.remove(currentModel);
@@ -174,17 +214,24 @@ function loadUploadedModel(file) {
     const reader = new FileReader();
     reader.onload = function(event) {
         const fileURL = event.target.result;
+        const isGLB = file.name.toLowerCase().endsWith('.glb');
+        
+        // لاگ برای اطلاعات بیشتر از فایل آپلود شده
+        console.log(`بارگذاری فایل آپلود شده: ${file.name}, اندازه: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
         
         loader.load(fileURL, (gltf) => {
             currentModel = gltf.scene;
+            
+            // بهینه‌سازی مدل آپلود شده
+            optimizeModel(currentModel, isGLB);
+            
             scene.add(currentModel);
             
             // تنظیم دوربین برای نمایش کامل مدل
             fitCameraToModel(currentModel);
             
             // اضافه کردن نام فایل به لیست فایل‌های نمایش داده شده
-            const fileName = file.name;
-            addUploadedFileToList(fileName);
+            addUploadedFileToList(file.name);
         }, 
         (xhr) => {
             const loadingPercentage = Math.round((xhr.loaded / xhr.total) * 100);
@@ -192,11 +239,56 @@ function loadUploadedModel(file) {
         }, 
         (error) => {
             console.error('خطا در بارگذاری مدل:', error);
-            alert('خطا در بارگذاری مدل: ' + error.message);
+            
+            // نمایش خطای دقیق‌تر برای فایل‌های GLB
+            if (isGLB) {
+                alert(`خطا در بارگذاری فایل GLB: ${error.message}\nاطمینان حاصل کنید که فایل GLB معتبر است و به درستی صادر شده است.`);
+            } else {
+                alert('خطا در بارگذاری مدل: ' + error.message);
+            }
         });
     };
     
-    reader.readAsDataURL(file);
+    // برای فایل‌های GLB از ArrayBuffer استفاده می‌کنیم برای دقت بیشتر
+    if (file.name.toLowerCase().endsWith('.glb')) {
+        reader.readAsArrayBuffer(file);
+    } else {
+        reader.readAsDataURL(file);
+    }
+}
+
+// بهبود تابع تنظیم دوربین برای نمایش بهتر مدل‌ها
+function fitCameraToModel(model) {
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    
+    // برای فایل‌های با مقیاس بزرگ یا کوچک، تنظیم منطقی‌تر
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    let cameraDistance = Math.abs(maxDim / Math.sin(fov / 2));
+    
+    // حداقل و حداکثر فاصله دوربین
+    cameraDistance = Math.max(1.5, Math.min(cameraDistance, 100));
+    
+    // انتقال مدل به مرکز صحنه
+    model.position.x = -center.x;
+    model.position.y = -center.y;
+    model.position.z = -center.z;
+    
+    // تنظیم موقعیت دوربین
+    const direction = new THREE.Vector3(1, 1, 1).normalize();
+    camera.position.copy(direction.multiplyScalar(cameraDistance));
+    camera.lookAt(0, 0, 0);
+    
+    // تنظیم کنترل‌ها
+    controls.target.set(0, 0, 0);
+    controls.minDistance = cameraDistance * 0.1;
+    controls.maxDistance = cameraDistance * 5;
+    controls.update();
+    
+    // فعال‌سازی سایه‌ها برای رندرر
+    renderer.shadowMap.enabled = true;
 }
 
 // اضافه کردن فایل آپلود شده به لیست
@@ -286,6 +378,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // نمایش اولیه دمای رنگ
     updateTemperatureDisplay(parseInt(document.getElementById('light-temperature').value));
+    
+    // تنظیم رندرر برای کیفیت بهتر
+    renderer.physicallyCorrectLights = true;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1;
 });
 
 // حلقه انیمیشن برای رندر مداوم
