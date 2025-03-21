@@ -726,3 +726,31 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
 });
+
+function loadModel(url) {
+    console.log(`تلاش برای بارگذاری مدل از مسیر: ${url}`);
+    const loader = new THREE.GLTFLoader();
+    loader.load(
+        url,
+        function (gltf) {
+            console.log(`مدل ${url} با موفقیت بارگذاری شد.`, gltf);
+            scene.add(gltf.scene);
+        },
+        function (xhr) {
+            console.log(`بارگذاری ${url}: ${(xhr.loaded / xhr.total * 100)}%`);
+        },
+        function (error) {
+            console.error(`خطا در بارگذاری مدل ${url}:`, error);
+            alert(`خطا در بارگذاری مدل ${url}. لطفاً مسیر فایل را بررسی کنید.`);
+        }
+    );
+}
+
+function loadFileList() {
+    const files = ["model1.gltf", "model2.glb", "sample.gltf", "cube.glb"];
+    files.forEach(file => {
+        const filePath = `models/${file}`;
+        console.log(`در حال بارگذاری مدل: ${file}`);
+        loadModel(filePath);
+    });
+}
