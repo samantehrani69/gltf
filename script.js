@@ -169,6 +169,7 @@ try {
 function loadModel(file) {
     if (currentModel) {
         scene.remove(currentModel);
+        currentModel = null;
     }
     
     // نمایش وضعیت بارگذاری
@@ -204,14 +205,31 @@ function loadModel(file) {
                     }
                     
                     // بارگذاری مدل
+                    const loader = new THREE.GLTFLoader();
                     loader.load(modelPath, 
                         // موفقیت
                         (gltf) => {
                             console.log(`مدل ${file} با موفقیت بارگذاری شد.`, gltf);
                             currentModel = gltf.scene;
+                            
+                            // مطمئن شویم مدل قبلی حذف شده است
+                            scene.children.forEach(child => {
+                                if (child.isObject3D && child !== currentModel && 
+                                    child !== ambientLight && child !== hemisphereLight && 
+                                    child !== currentLight) {
+                                    console.log("حذف شیء قبلی از صحنه", child);
+                                    scene.remove(child);
+                                }
+                            });
+                            
                             optimizeModel(currentModel, file.toLowerCase().endsWith('.glb'));
+                            console.log("افزودن مدل به صحنه", currentModel);
                             scene.add(currentModel);
+                            
+                            // تنظیم زاویه دوربین و موقعیت مدل
                             fitCameraToModel(currentModel);
+                            console.log("تعداد اشیاء در صحنه:", scene.children.length);
+                            console.log("اشیاء صحنه:", scene.children);
                             hideLoading();
                         }, 
                         // پیشرفت
@@ -470,6 +488,9 @@ function fitCameraToModel(model) {
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     
+    console.log("اندازه مدل:", size);
+    console.log("مرکز مدل:", center);
+    
     // برای فایل‌های با مقیاس بزرگ یا کوچک، تنظیم منطقی‌تر
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = camera.fov * (Math.PI / 180);
@@ -483,10 +504,15 @@ function fitCameraToModel(model) {
     model.position.y = -center.y;
     model.position.z = -center.z;
     
+    console.log("موقعیت جدید مدل:", model.position);
+    
     // تنظیم موقعیت دوربین
     const direction = new THREE.Vector3(1, 1, 1).normalize();
     camera.position.copy(direction.multiplyScalar(cameraDistance));
     camera.lookAt(0, 0, 0);
+    
+    console.log("موقعیت دوربین:", camera.position);
+    console.log("فاصله دوربین:", cameraDistance);
     
     // تنظیم کنترل‌ها
     controls.target.set(0, 0, 0);
@@ -726,31 +752,3 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
 });
-
-function loadModel(url) {
-    console.log(`تلاش برای بارگذاری مدل از مسیر: ${url}`);
-    const loader = new THREE.GLTFLoader();
-    loader.load(
-        url,
-        function (gltf) {
-            console.log(`مدل ${url} با موفقیت بارگذاری شد.`, gltf);
-            scene.add(gltf.scene);
-        },
-        function (xhr) {
-            console.log(`بارگذاری ${url}: ${(xhr.loaded / xhr.total * 100)}%`);
-        },
-        function (error) {
-            console.error(`خطا در بارگذاری مدل ${url}:`, error);
-            alert(`خطا در بارگذاری مدل ${url}. لطفاً مسیر فایل را بررسی کنید.`);
-        }
-    );
-}
-
-function loadFileList() {
-    const files = ["model1.gltf", "model2.glb", "sample.gltf", "cube.glb"];
-    files.forEach(file => {
-        const filePath = `models/${file}`;
-        console.log(`در حال بارگذاری مدل: ${file}`);
-        loadModel(filePath);
-    });
-}
