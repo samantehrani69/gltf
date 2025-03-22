@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>نمایشگر سه‌بعدی حرفه‌ای</title>
     <style>
         body { margin: 0; font-family: Arial, sans-serif; direction: rtl; overflow: hidden; }
@@ -47,6 +50,52 @@
             border-radius: 10px;
             display: none;
             z-index: 1000;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            min-width: 200px;
+            text-align: center;
+        }
+        
+        /* اضافه کردن استایل‌های جدید برای بهبود تجربه کاربری */
+        .button-3d {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+        }
+        
+        .button-3d:hover {
+            background-color: #45a049;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transform: translateY(-2px);
+        }
+        
+        /* تغییر رنگ پس‌زمینه sidebar برای کنتراست بیشتر */
+        #sidebar {
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+        }
+        
+        /* نمایشگر معلق برای ثبت تغییرات */
+        #status-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: none;
+            z-index: 1000;
+            font-size: 14px;
         }
     </style>
     
@@ -59,19 +108,19 @@
                 "https://cdn.jsdelivr.net/npm/three@0.138.0/build/three.min.js",
                 "https://cdnjs.cloudflare.com/ajax/libs/three.js/r138/three.min.js",
                 "https://unpkg.com/three@0.138.0/build/three.min.js"
-            ];
+            ].map(src => src + '?t=' + new Date().getTime());
             
             // لیست CDN‌های GLTFLoader
             const gltfLoaderSources = [
                 "https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/loaders/GLTFLoader.js",
                 "https://unpkg.com/three@0.138.0/examples/js/loaders/GLTFLoader.js"
-            ];
+            ].map(src => src + '?t=' + new Date().getTime());
             
             // لیست CDN‌های OrbitControls
             const orbitControlsSources = [
                 "https://cdn.jsdelivr.net/npm/three@0.138.0/examples/js/controls/OrbitControls.js",
                 "https://unpkg.com/three@0.138.0/examples/js/controls/OrbitControls.js"
-            ];
+            ].map(src => src + '?t=' + new Date().getTime());
             
             // بارگذاری THREE.js
             loadScript(threeSources, 0, function() {
@@ -85,7 +134,7 @@
                         // پس از بارگذاری همه کتابخانه‌ها، بارگذاری اسکریپت اصلی
                         console.log("در حال بارگذاری اسکریپت اصلی...");
                         const scriptElement = document.createElement('script');
-                        scriptElement.src = 'script.js';
+                        scriptElement.src = 'script.js?t=' + new Date().getTime(); // اضافه کردن پارامتر زمان
                         document.body.appendChild(scriptElement);
                     });
                 });
@@ -133,6 +182,11 @@
                     <!-- نمایشگر وضعیت بارگذاری لیست فایل‌ها -->
                     <p id="file-list-loading">در حال بارگذاری لیست فایل‌ها...</p>
                 </div>
+                
+                <!-- اضافه کردن دکمه بازسازی لیست برای مواقعی که کش ایجاد مشکل می‌کند -->
+                <button class="button-3d" onclick="window.location.reload(true)" style="width: 100%; margin-top: 10px;">
+                    بازنشانی لیست و پاکسازی کش
+                </button>
             </div>
             
             <div id="light-controls">
@@ -181,9 +235,56 @@
                 </div>
             </div>
         </div>
-        <div id="scene"></div>
+        <div id="scene">
+            <!-- نمایش معلومات سیستم -->
+            <div id="system-info" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); color: white; padding: 5px; border-radius: 3px; font-size: 12px; z-index: 100;">
+                اطلاعات سیستم در حال بارگذاری...
+            </div>
+        </div>
     </div>
     
     <div id="loading-indicator">در حال بارگذاری مدل...</div>
+    <div id="status-toast"></div>
+    
+    <!-- اضافه کردن کد برای نمایش اطلاعات سیستم -->
+    <script>
+        window.addEventListener('load', function() {
+            const systemInfo = document.getElementById('system-info');
+            if (systemInfo) {
+                const gl = document.createElement('canvas').getContext('webgl');
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    const vendor = debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : 'نامشخص';
+                    const renderer = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'نامشخص';
+                    
+                    systemInfo.innerHTML = `
+                        سازنده گرافیک: ${vendor}<br>
+                        رندرر: ${renderer}<br>
+                        دقت صفحه: ${window.innerWidth}x${window.innerHeight}
+                    `;
+                }
+            }
+            
+            // نمایش پیام کوتاه
+            function showToast(message, duration = 3000) {
+                const toast = document.getElementById('status-toast');
+                if (toast) {
+                    toast.textContent = message;
+                    toast.style.display = 'block';
+                    setTimeout(() => {
+                        toast.style.display = 'none';
+                    }, duration);
+                }
+            }
+            
+            // دکمه‌ای برای نمایش وضعیت کارکرد WebGL
+            setTimeout(() => {
+                showToast('سیستم نمایش سه‌بعدی آماده است');
+            }, 2000);
+            
+            // ذخیره تابع در window برای استفاده در جاهای دیگر
+            window.showToast = showToast;
+        });
+    </script>
 </body>
 </html>
