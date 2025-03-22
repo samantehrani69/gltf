@@ -204,8 +204,9 @@
                 </div>
                 
                 <div class="control-group">
-                    <label for="light-intensity">شدت نور:</label>
-                    <input type="range" id="light-intensity" min="0" max="3" step="0.1" value="1">
+                    <label for="light-intensity">شدت نور: <span id="intensity-value">1.0</span></label>
+                    <input type="range" id="light-intensity" min="0" max="3" step="0.1" value="1"
+                           oninput="document.getElementById('intensity-value').textContent = this.value">
                     
                     <label for="light-color">رنگ نور:</label>
                     <input type="color" id="light-color" value="#ffffff">
@@ -216,22 +217,33 @@
                 </div>
                 
                 <div id="position-controls" class="control-group">
-                    <label for="light-x">موقعیت X نور:</label>
-                    <input type="range" id="light-x" min="-10" max="10" value="0">
+                    <label for="light-x">موقعیت X نور: <span id="x-value">0</span></label>
+                    <input type="range" id="light-x" min="-10" max="10" step="0.5" value="0"
+                           oninput="document.getElementById('x-value').textContent = this.value">
                     
-                    <label for="light-y">موقعیت Y نور:</label>
-                    <input type="range" id="light-y" min="-10" max="10" value="1">
+                    <label for="light-y">موقعیت Y نور: <span id="y-value">1</span></label>
+                    <input type="range" id="light-y" min="-10" max="10" step="0.5" value="1"
+                           oninput="document.getElementById('y-value').textContent = this.value">
                     
-                    <label for="light-z">موقعیت Z نور:</label>
-                    <input type="range" id="light-z" min="-10" max="10" value="1">
+                    <label for="light-z">موقعیت Z نور: <span id="z-value">1</span></label>
+                    <input type="range" id="light-z" min="-10" max="10" step="0.5" value="1"
+                           oninput="document.getElementById('z-value').textContent = this.value">
                 </div>
                 
                 <div id="spot-controls" class="control-group" style="display: none;">
-                    <label for="light-angle">زاویه نور اسپات:</label>
-                    <input type="range" id="light-angle" min="0" max="90" value="30">
+                    <label for="light-angle">زاویه نور اسپات: <span id="angle-value">30</span>°</label>
+                    <input type="range" id="light-angle" min="0" max="90" step="1" value="30"
+                           oninput="document.getElementById('angle-value').textContent = this.value">
                     
-                    <label for="light-penumbra">لبه نرم:</label>
-                    <input type="range" id="light-penumbra" min="0" max="1" step="0.01" value="0">
+                    <label for="light-penumbra">لبه نرم: <span id="penumbra-value">0</span></label>
+                    <input type="range" id="light-penumbra" min="0" max="1" step="0.01" value="0"
+                           oninput="document.getElementById('penumbra-value').textContent = this.value">
+                </div>
+                
+                <div class="control-group">
+                    <button class="button-3d" onclick="setupLights()" style="width: 100%;">
+                        اعمال تنظیمات نور
+                    </button>
                 </div>
             </div>
         </div>
