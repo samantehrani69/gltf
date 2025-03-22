@@ -108,9 +108,11 @@ function clearLights() {
     }
 }
 
-// تنظیم نورهای کاربر - اصلاح شده برای اعمال تغییرات فوری
+// تنظیم نورهای کاربر - اصلاح شده با رفع اشکالات
 function setupLights() {
-    // پاکسازی نورهای کاربر قبلی
+    console.log("در حال اعمال تنظیمات نور...");
+    
+    // پاکسازی نورهای قبلی
     clearLights();
     
     // گرفتن مقادیر از کنترل‌های رابط کاربری
@@ -125,8 +127,9 @@ function setupLights() {
         z: parseFloat(document.getElementById('light-z').value)
     };
     
-    // ثبت تغییرات در کنسول برای اشکال‌زدایی
-    console.log(`تنظیم نور: نوع=${lightType}, شدت=${intensity}, رنگ=${color}, موقعیت=`, position);
+    // ثبت مقادیر دقیق برای اشکال‌زدایی
+    console.log(`تنظیم نور: نوع=${lightType}, شدت=${intensity}, رنگ=${color}`);
+    console.log(`موقعیت نور: x=${position.x}, y=${position.y}, z=${position.z}`);
     
     // نمایش کنترل‌های مناسب بر اساس نوع نور
     document.getElementById('position-controls').style.display = 
@@ -134,79 +137,86 @@ function setupLights() {
     document.getElementById('spot-controls').style.display = 
         lightType === 'spot' ? 'block' : 'none';
     
-    // ایجاد نور بر اساس نوع انتخاب شده
-    switch (lightType) {
-        case 'directional':
-            currentLight = new THREE.DirectionalLight(color, intensity);
-            currentLight.position.set(position.x, position.y, position.z);
-            currentLight.castShadow = true;
-            
-            // اضافه کردن helper برای نمایش
-            const dirHelper = new THREE.DirectionalLightHelper(currentLight, 1);
-            scene.add(dirHelper);
-            lightHelpers.push(dirHelper);
-            break;
-            
-        case 'point':
-            currentLight = new THREE.PointLight(color, intensity);
-            currentLight.position.set(position.x, position.y, position.z);
-            currentLight.castShadow = true;
-            
-            // اضافه کردن helper برای نمایش
-            const pointHelper = new THREE.PointLightHelper(currentLight, 0.5);
-            scene.add(pointHelper);
-            lightHelpers.push(pointHelper);
-            break;
-            
-        case 'spot':
-            currentLight = new THREE.SpotLight(color, intensity);
-            currentLight.position.set(position.x, position.y, position.z);
-            currentLight.angle = Math.PI * parseFloat(document.getElementById('light-angle').value) / 180;
-            currentLight.penumbra = parseFloat(document.getElementById('light-penumbra').value);
-            currentLight.target.position.set(0, 0, 0);
-            currentLight.castShadow = true;
-            scene.add(currentLight.target);
-            
-            // اضافه کردن helper برای نمایش
-            const spotHelper = new THREE.SpotLightHelper(currentLight);
-            scene.add(spotHelper);
-            lightHelpers.push(spotHelper);
-            break;
-            
-        case 'ambient':
-            // تنظیم نور محیطی موجود به جای ایجاد یک نور جدید
-            if (ambientLight) {
-                ambientLight.color.set(color);
-                ambientLight.intensity = intensity;
-                console.log("نور محیطی به‌روز شد:", ambientLight);
-            } else {
+    try {
+        // ایجاد نور جدید بر اساس نوع انتخاب شده
+        switch (lightType) {
+            case 'directional':
+                currentLight = new THREE.DirectionalLight(color, intensity);
+                currentLight.position.set(position.x, position.y, position.z);
+                currentLight.castShadow = true;
+                
+                // اضافه کردن helper
+                const dirHelper = new THREE.DirectionalLightHelper(currentLight, 1);
+                scene.add(dirHelper);
+                lightHelpers.push(dirHelper);
+                break;
+                
+            case 'point':
+                currentLight = new THREE.PointLight(color, intensity);
+                currentLight.position.set(position.x, position.y, position.z);
+                currentLight.castShadow = true;
+                
+                // اضافه کردن helper
+                const pointHelper = new THREE.PointLightHelper(currentLight, 0.5);
+                scene.add(pointHelper);
+                lightHelpers.push(pointHelper);
+                break;
+                
+            case 'spot':
+                currentLight = new THREE.SpotLight(color, intensity);
+                currentLight.position.set(position.x, position.y, position.z);
+                currentLight.angle = Math.PI * parseFloat(document.getElementById('light-angle').value) / 180;
+                currentLight.penumbra = parseFloat(document.getElementById('light-penumbra').value);
+                currentLight.target.position.set(0, 0, 0);
+                currentLight.castShadow = true;
+                scene.add(currentLight.target);
+                
+                // اضافه کردن helper
+                const spotHelper = new THREE.SpotLightHelper(currentLight);
+                scene.add(spotHelper);
+                lightHelpers.push(spotHelper);
+                break;
+                
+            case 'ambient':
+                // برای نور محیطی
+                if (ambientLight) {
+                    scene.remove(ambientLight);
+                }
                 ambientLight = new THREE.AmbientLight(color, intensity);
                 scene.add(ambientLight);
-                console.log("نور محیطی جدید ایجاد شد:", ambientLight);
-            }
-            break;
-            
-        case 'hemisphere':
-            // ایجاد نور نیم‌کره‌ای جدید
-            hemisphereLight = new THREE.HemisphereLight(color, '#444444', intensity);
-            scene.add(hemisphereLight);
-            currentLight = hemisphereLight; // ذخیره برای پاکسازی بعدی
-            break;
+                console.log("نور محیطی اضافه شد:", ambientLight);
+                break;
+                
+            case 'hemisphere':
+                // ایجاد نور نیم‌کره‌ای
+                if (hemisphereLight) {
+                    scene.remove(hemisphereLight);
+                }
+                hemisphereLight = new THREE.HemisphereLight(color, '#444444', intensity);
+                scene.add(hemisphereLight);
+                currentLight = hemisphereLight;
+                break;
+        }
+        
+        // اضافه کردن نور جدید به صحنه
+        if (currentLight && currentLight !== ambientLight && currentLight !== hemisphereLight) {
+            scene.add(currentLight);
+            console.log("نور اضافه شد:", currentLight);
+        }
+        
+        // نمایش پیام موفقیت
+        if (window.showToast) {
+            window.showToast('تنظیمات نور با موفقیت اعمال شد');
+        }
+        
+        // رندر مجدد صحنه برای نمایش تغییرات
+        renderer.render(scene, camera);
+        
+        console.log("تنظیمات نور با موفقیت اعمال شد");
+    } catch (error) {
+        console.error("خطا در اعمال تنظیمات نور:", error);
+        alert("خطا در اعمال تنظیمات نور: " + error.message);
     }
-    
-    // اضافه کردن نور به صحنه
-    if (currentLight && currentLight !== ambientLight && currentLight !== hemisphereLight) {
-        scene.add(currentLight);
-        console.log("نور اضافه شد:", currentLight);
-    }
-    
-    // نمایش پیام تاییدیه
-    if (window.showToast) {
-        window.showToast(`تنظیمات نور "${lightType}" با موفقیت اعمال شد`);
-    }
-    
-    // رندر مجدد صحنه برای نمایش تغییرات
-    renderer.render(scene, camera);
 }
 
 // تبدیل دما به رنگ (کلوین به RGB)
@@ -989,75 +999,27 @@ function createDefaultCube() {
 loadFileList();
 
 // اصلاح طریقه تنظیم ورودی‌های کاربر برای اعمال تغییرات در لحظه
+// فقط کنترل‌های تغییر نوع نور و دما را فوری اعمال می‌کنیم، بقیه منتظر دکمه می‌مانند
 function setupEventListeners() {
     console.log("راه‌اندازی رویدادهای کنترل نور...");
     
-    // نوع نور
-    document.getElementById('light-type').addEventListener('change', setupLights);
-    
-    // شدت نور
-    document.getElementById('light-intensity').addEventListener('input', setupLights);
-    
-    // رنگ نور
-    document.getElementById('light-color').addEventListener('input', setupLights);
-    
-    // موقعیت X نور
-    document.getElementById('light-x').addEventListener('input', function() {
-        if (currentLight && currentLight.position) {
-            currentLight.position.x = parseFloat(this.value);
-            updateLightHelpers();
-        } else {
-            setupLights();
-        }
+    // تغییر نوع نور - این را فوری اعمال می‌کنیم چون کنترل‌های مختلفی باید نمایش داده شوند
+    document.getElementById('light-type').addEventListener('change', function() {
+        const lightType = this.value;
+        
+        // فقط نمایش کنترل‌های مناسب، بدون تغییر نور
+        document.getElementById('position-controls').style.display = 
+            ['directional', 'point', 'spot'].includes(lightType) ? 'block' : 'none';
+        document.getElementById('spot-controls').style.display = 
+            lightType === 'spot' ? 'block' : 'none';
     });
     
-    // موقعیت Y نور
-    document.getElementById('light-y').addEventListener('input', function() {
-        if (currentLight && currentLight.position) {
-            currentLight.position.y = parseFloat(this.value);
-            updateLightHelpers();
-        } else {
-            setupLights();
-        }
-    });
-    
-    // موقعیت Z نور
-    document.getElementById('light-z').addEventListener('input', function() {
-        if (currentLight && currentLight.position) {
-            currentLight.position.z = parseFloat(this.value);
-            updateLightHelpers();
-        } else {
-            setupLights();
-        }
-    });
-    
-    // زاویه نور اسپات
-    document.getElementById('light-angle').addEventListener('input', function() {
-        if (currentLight && currentLight.type === 'SpotLight') {
-            currentLight.angle = Math.PI * parseFloat(this.value) / 180;
-            updateLightHelpers();
-        } else {
-            setupLights();
-        }
-    });
-    
-    // لبه نرم نور اسپات
-    document.getElementById('light-penumbra').addEventListener('input', function() {
-        if (currentLight && currentLight.type === 'SpotLight') {
-            currentLight.penumbra = parseFloat(this.value);
-            updateLightHelpers();
-        } else {
-            setupLights();
-        }
-    });
-    
-    // دمای رنگ
+    // دمای رنگ - فقط رنگ را تغییر می‌دهیم، نور را تغییر نمی‌دهیم
     document.getElementById('light-temperature').addEventListener('input', function() {
         const temperature = parseInt(this.value);
         const rgbColor = kelvinToRGB(temperature);
         document.getElementById('light-color').value = rgbColor;
         updateTemperatureDisplay(temperature);
-        setupLights();
     });
     
     console.log("رویدادهای کنترل نور راه‌اندازی شدند");
