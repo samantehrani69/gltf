@@ -39,28 +39,40 @@ function hideLoading() {
     loadingIndicator.style.display = 'none';
 }
 
-// ایجاد نورهای پیش‌فرض
+// ایجاد نورهای پیش‌فرض - بازنویسی با نورهای قوی‌تر
 function setupDefaultLights() {
-    // نور محیطی پایه که همیشه وجود دارد
-    ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // کاهش شدت نور محیطی
+    // ابتدا همه نورهای قبلی را پاک می‌کنیم
+    scene.traverse(object => {
+        if (object instanceof THREE.Light) {
+            scene.remove(object);
+        }
+    });
+    
+    // نور محیطی با شدت بیشتر
+    ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // افزایش شدت نور محیطی
     scene.add(ambientLight);
     
-    // نور نقطه‌ای پیش‌فرض برای سایه‌پردازی بهتر
-    defaultPointLight = new THREE.PointLight(0xffffff, 0.7);
-    defaultPointLight.position.set(5, 10, 5);
+    // نور نقطه‌ای اصلی - از بالا
+    defaultPointLight = new THREE.PointLight(0xffffff, 1.0); // شدت بیشتر
+    defaultPointLight.position.set(0, 10, 0);
     defaultPointLight.castShadow = true;
-    // تنظیمات سایه برای کیفیت بهتر
     defaultPointLight.shadow.mapSize.width = 1024;
     defaultPointLight.shadow.mapSize.height = 1024;
     scene.add(defaultPointLight);
     
-    // نور هدایت کننده برای روشن کردن قسمت جلوی مدل
-    const frontLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    frontLight.position.set(0, 0, 5);
+    // نور از جلو
+    const frontLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    frontLight.position.set(0, 0, 10);
+    frontLight.castShadow = true;
     scene.add(frontLight);
     
-    // افزودن صفحه در زیر مدل برای سایه‌اندازی
-    const groundGeometry = new THREE.PlaneGeometry(50, 50);
+    // نور از پشت
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    backLight.position.set(0, 5, -10);
+    scene.add(backLight);
+    
+    // افزودن زمینه برای سایه‌ها
+    const groundGeometry = new THREE.PlaneGeometry(100, 100);
     const groundMaterial = new THREE.MeshStandardMaterial({ 
         color: 0xcccccc, 
         roughness: 1.0, 
@@ -70,7 +82,10 @@ function setupDefaultLights() {
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -5;
     ground.receiveShadow = true;
+    ground.userData.isGround = true;
     scene.add(ground);
+    
+    console.log("نورهای پیش‌فرض با شدت بیشتر اضافه شدند");
 }
 
 // پاکسازی تمام نورها و helper های نور قبلی
@@ -93,9 +108,9 @@ function clearLights() {
     }
 }
 
-// تنظیم نورهای کاربر - اصلاح شده
+// تنظیم نورهای کاربر - اصلاح شده برای اعمال تغییرات فوری
 function setupLights() {
-    // پاکسازی نورهای قبلی
+    // پاکسازی نورهای کاربر قبلی
     clearLights();
     
     // گرفتن مقادیر از کنترل‌های رابط کاربری
@@ -110,7 +125,7 @@ function setupLights() {
         z: parseFloat(document.getElementById('light-z').value)
     };
     
-    // برای ثبت تغییرات
+    // ثبت تغییرات در کنسول برای اشکال‌زدایی
     console.log(`تنظیم نور: نوع=${lightType}, شدت=${intensity}, رنگ=${color}, موقعیت=`, position);
     
     // نمایش کنترل‌های مناسب بر اساس نوع نور
@@ -159,17 +174,20 @@ function setupLights() {
             break;
             
         case 'ambient':
-            // تنظیم نور محیطی موجود
+            // تنظیم نور محیطی موجود به جای ایجاد یک نور جدید
             if (ambientLight) {
                 ambientLight.color.set(color);
                 ambientLight.intensity = intensity;
+                console.log("نور محیطی به‌روز شد:", ambientLight);
             } else {
                 ambientLight = new THREE.AmbientLight(color, intensity);
                 scene.add(ambientLight);
+                console.log("نور محیطی جدید ایجاد شد:", ambientLight);
             }
             break;
             
         case 'hemisphere':
+            // ایجاد نور نیم‌کره‌ای جدید
             hemisphereLight = new THREE.HemisphereLight(color, '#444444', intensity);
             scene.add(hemisphereLight);
             currentLight = hemisphereLight; // ذخیره برای پاکسازی بعدی
@@ -187,7 +205,7 @@ function setupLights() {
         window.showToast(`تنظیمات نور "${lightType}" با موفقیت اعمال شد`);
     }
     
-    // رندر مجدد صحنه برای اعمال تغییرات
+    // رندر مجدد صحنه برای نمایش تغییرات
     renderer.render(scene, camera);
 }
 
@@ -325,16 +343,43 @@ function loadModel(file) {
                             // اطمینان از بارگذاری مدل
                             console.log("اطلاعات مدل بارگذاری شده:", currentModel);
                             
-                            // بررسی تعداد فرزندان مدل
-                            console.log("تعداد فرزندان مدل:", currentModel.children.length);
-                            console.log("فرزندان مدل:", currentModel.children);
-                            
-                            // مقیاس‌بندی مدل برای نمایش بهتر
-                            const box = new THREE.Box3().setFromObject(currentModel);
-                            const size = box.getSize(new THREE.Vector3());
-                            console.log("اندازه اصلی مدل:", size);
+                            // بهبود متریال‌های مدل برای روشنایی بهتر
+                            currentModel.traverse(function(node) {
+                                if (node.isMesh) {
+                                    console.log("یافتن مش:", node.name);
+                                    
+                                    // شناسایی متریال‌های سیاه یا تیره و اصلاح آنها
+                                    if (node.material) {
+                                        const materials = Array.isArray(node.material) ? node.material : [node.material];
+                                        
+                                        materials.forEach(mat => {
+                                            // اگر متریال رنگ خیلی تیره دارد، آن را روشن‌تر کنیم
+                                            if (mat.color) {
+                                                const color = mat.color;
+                                                const brightness = color.r * 0.299 + color.g * 0.587 + color.b * 0.114;
+                                                
+                                                if (brightness < 0.15) {
+                                                    console.log("متریال تیره تشخیص داده شد، روشن‌سازی:", mat);
+                                                    // روشن‌تر کردن رنگ
+                                                    color.r = Math.min(1, color.r * 2);
+                                                    color.g = Math.min(1, color.g * 2);
+                                                    color.b = Math.min(1, color.b * 2);
+                                                }
+                                            }
+                                            
+                                            // بهبود متریال
+                                            enhanceMaterial(mat);
+                                        });
+                                    }
+                                    
+                                    // فعال کردن سایه‌ها
+                                    node.castShadow = true;
+                                    node.receiveShadow = true;
+                                }
+                            });
                             
                             // انتقال مدل به مرکز صحنه
+                            const box = new THREE.Box3().setFromObject(currentModel);
                             const center = box.getCenter(new THREE.Vector3());
                             currentModel.position.x = -center.x;
                             currentModel.position.y = -center.y;
@@ -344,40 +389,34 @@ function loadModel(file) {
                             scene.add(currentModel);
                             console.log("مدل به صحنه اضافه شد");
                             
-                            // نمایش مش‌ها روی مدل برای تشخیص بهتر
-                            currentModel.traverse(function(node) {
-                                if (node.isMesh) {
-                                    console.log("یافتن مش:", node.name);
-                                    // اضافه کردن یک wireframe برای نمایش بهتر
-                                    const wireframe = new THREE.WireframeGeometry(node.geometry);
-                                    const line = new THREE.LineSegments(wireframe);
-                                    line.material.color.setHex(0x000000);
-                                    line.material.opacity = 0.25;
-                                    line.material.transparent = true;
-                                    node.add(line);
-                                    
-                                    // اطمینان از نمایش صحیح مواد
-                                    if (node.material) {
-                                        if (Array.isArray(node.material)) {
-                                            node.material.forEach(mat => {
-                                                mat.side = THREE.DoubleSide; // نمایش هر دو طرف
-                                                mat.needsUpdate = true;
-                                            });
-                                        } else {
-                                            node.material.side = THREE.DoubleSide;
-                                            node.material.needsUpdate = true;
-                                        }
-                                    }
-                                }
-                            });
-                            
-                            // تنظیم دوربین و نور بر اساس مدل جدید
+                            // تنظیم دوربین برای نمایش کامل مدل
                             fitCameraToModel(currentModel);
                             
-                            // تنظیم مجدد نورها پس از بارگذاری مدل
+                            // تست روشنایی - افزودن نور موقت برای نمایش مدل
+                            const testLight = new THREE.PointLight(0xffffff, 2.0);
+                            testLight.position.copy(camera.position);
+                            testLight.position.y += 2;
+                            testLight.name = "TestLight";
+                            scene.add(testLight);
+                            
+                            // اعمال فوری تنظیمات نور
                             setupLights();
                             
                             hideLoading();
+                            
+                            // نمایش پیام راهنما
+                            if (window.showToast) {
+                                window.showToast('مدل با موفقیت بارگذاری شد. از کنترل‌های نور برای تنظیم استفاده کنید.');
+                            }
+                            
+                            // بررسی تعداد نورها
+                            const lights = [];
+                            scene.traverse(obj => {
+                                if (obj instanceof THREE.Light) {
+                                    lights.push(obj);
+                                }
+                            });
+                            console.log(`تعداد نورهای موجود در صحنه: ${lights.length}`, lights);
                         }, 
                         // پیشرفت - با استفاده از تابع جدید
                         updateLoadingProgress,
@@ -520,58 +559,63 @@ function optimizeModel(model, isGLB) {
     scene.add(plane);
 }
 
-// بهبود مواد برای نمایش بهتر
+// بهبود مواد برای نمایش بهتر و جلوگیری از ظاهر سیاه
 function enhanceMaterial(material) {
     if (!material) return;
     
-    // بررسی نوع متریال - برای متریال‌های آماده شده قبلی مهم است
-    if (material.isMeshStandardMaterial || material.isMeshPhysicalMaterial) {
-        // تنظیم پارامترهای کیفیت متریال
-        material.roughness = 0.7;  // کمی صاف‌تر
-        material.metalness = 0.3;  // کمی فلزی‌تر
-    } else {
-        // تبدیل متریال‌های ساده به MeshStandardMaterial برای کیفیت بهتر
-        const color = material.color ? material.color.clone() : new THREE.Color(0xcccccc);
-        const map = material.map;
+    // اصلاح: استفاده از MeshStandardMaterial برای همه مواد برای اطمینان از سازگاری با نور
+    if (!material.isMeshStandardMaterial && !material.isMeshPhysicalMaterial) {
+        // ساخت متریال جدید با استفاده از رنگ و نقشه موجود
+        const newMaterialProps = {
+            color: material.color ? material.color.clone() : new THREE.Color(0xcccccc),
+            map: material.map,
+            roughness: 0.6,
+            metalness: 0.3,
+            side: THREE.DoubleSide
+        };
         
-        const newMaterial = new THREE.MeshStandardMaterial({
-            color: color,
-            map: map,
-            roughness: 0.7,
-            metalness: 0.3
-        });
-        
-        // کپی سایر ویژگی‌های مهم
+        // کپی خصوصیات مهم
         if (material.transparent) {
-            newMaterial.transparent = true;
-            newMaterial.opacity = material.opacity;
+            newMaterialProps.transparent = material.transparent;
+            newMaterialProps.opacity = material.opacity;
         }
         
-        if (material.emissive) newMaterial.emissive = material.emissive;
-        if (material.emissiveMap) newMaterial.emissiveMap = material.emissiveMap;
+        if (material.emissive) {
+            newMaterialProps.emissive = material.emissive.clone();
+        }
         
-        // به‌روزرسانی متریال اصلی
+        if (material.emissiveMap) {
+            newMaterialProps.emissiveMap = material.emissiveMap;
+        }
+        
+        if (material.normalMap) {
+            newMaterialProps.normalMap = material.normalMap;
+            newMaterialProps.normalScale = new THREE.Vector2(1, 1);
+        }
+        
+        const newMaterial = new THREE.MeshStandardMaterial(newMaterialProps);
+        
+        // جایگزینی ویژگی‌های متریال قدیمی با جدید
         Object.assign(material, newMaterial);
+        
+        console.log("متریال ارتقا یافت به MeshStandardMaterial");
+    } else {
+        // تنظیم پارامترهای بهتر برای متریال‌های Standard موجود
+        material.roughness = 0.6;
+        material.metalness = 0.3;
+        material.side = THREE.DoubleSide;
     }
     
-    // اطمینان از نمایش دو طرفه
-    material.side = THREE.DoubleSide;
+    // تقویت نوردهی متریال
+    material.needsUpdate = true;
     
-    // فعال‌سازی نقشه‌های نرمال اگر موجود باشند
-    if (material.normalMap) {
-        material.normalScale.set(1, 1);
-    }
-    
-    // تضمین کد رنگ صحیح
+    // استفاده از شیدر درست برای نقشه‌ها
     if (material.map) {
         material.map.encoding = THREE.sRGBEncoding;
     }
     
-    // بهبود بازتاب نور
-    material.envMapIntensity = 1.0;
-    
-    // اطمینان از به‌روز‌رسانی متریال
-    material.needsUpdate = true;
+    // بهبود انعکاس محیط
+    material.envMapIntensity = 1.5;
 }
 
 // تابع بارگذاری مدل از فایل آپلود شده - بهبود یافته برای GLB
@@ -946,101 +990,83 @@ loadFileList();
 
 // اصلاح طریقه تنظیم ورودی‌های کاربر برای اعمال تغییرات در لحظه
 function setupEventListeners() {
-    // کنترل نوع نور - اعمال فوری
-    document.getElementById('light-type').addEventListener('change', function() {
-        setupLights();
-    });
+    console.log("راه‌اندازی رویدادهای کنترل نور...");
     
-    // کنترل شدت و رنگ نور - اعمال فوری
-    document.getElementById('light-intensity').addEventListener('input', function() {
-        setupLights();
-    });
+    // نوع نور
+    document.getElementById('light-type').addEventListener('change', setupLights);
     
-    document.getElementById('light-color').addEventListener('input', function() {
-        setupLights();
-    });
+    // شدت نور
+    document.getElementById('light-intensity').addEventListener('input', setupLights);
     
-    // کنترل‌های موقعیت نور - اعمال فوری
+    // رنگ نور
+    document.getElementById('light-color').addEventListener('input', setupLights);
+    
+    // موقعیت X نور
     document.getElementById('light-x').addEventListener('input', function() {
-        updateLightPosition();
+        if (currentLight && currentLight.position) {
+            currentLight.position.x = parseFloat(this.value);
+            updateLightHelpers();
+        } else {
+            setupLights();
+        }
     });
     
+    // موقعیت Y نور
     document.getElementById('light-y').addEventListener('input', function() {
-        updateLightPosition();
+        if (currentLight && currentLight.position) {
+            currentLight.position.y = parseFloat(this.value);
+            updateLightHelpers();
+        } else {
+            setupLights();
+        }
     });
     
+    // موقعیت Z نور
     document.getElementById('light-z').addEventListener('input', function() {
-        updateLightPosition();
+        if (currentLight && currentLight.position) {
+            currentLight.position.z = parseFloat(this.value);
+            updateLightHelpers();
+        } else {
+            setupLights();
+        }
     });
     
-    // کنترل‌های اسپات - اعمال فوری
+    // زاویه نور اسپات
     document.getElementById('light-angle').addEventListener('input', function() {
-        updateSpotLightParameters();
+        if (currentLight && currentLight.type === 'SpotLight') {
+            currentLight.angle = Math.PI * parseFloat(this.value) / 180;
+            updateLightHelpers();
+        } else {
+            setupLights();
+        }
     });
     
+    // لبه نرم نور اسپات
     document.getElementById('light-penumbra').addEventListener('input', function() {
-        updateSpotLightParameters();
+        if (currentLight && currentLight.type === 'SpotLight') {
+            currentLight.penumbra = parseFloat(this.value);
+            updateLightHelpers();
+        } else {
+            setupLights();
+        }
     });
     
-    // کنترل دمای رنگ - اعمال فوری
-    document.getElementById('light-temperature').addEventListener('input', function(e) {
-        const temperature = parseInt(e.target.value);
+    // دمای رنگ
+    document.getElementById('light-temperature').addEventListener('input', function() {
+        const temperature = parseInt(this.value);
         const rgbColor = kelvinToRGB(temperature);
         document.getElementById('light-color').value = rgbColor;
         updateTemperatureDisplay(temperature);
         setupLights();
     });
+    
+    console.log("رویدادهای کنترل نور راه‌اندازی شدند");
 }
 
-// تابع جدید برای بروزرسانی موقعیت نور - با اصلاح برای اعمال فوری
-function updateLightPosition() {
-    if (!currentLight || !['DirectionalLight', 'PointLight', 'SpotLight'].includes(currentLight.type)) {
-        setupLights(); // اگر نور فعلی معتبر نیست، نور جدید ایجاد کن
-        return;
-    }
-    
-    const x = parseFloat(document.getElementById('light-x').value);
-    const y = parseFloat(document.getElementById('light-y').value);
-    const z = parseFloat(document.getElementById('light-z').value);
-    
-    currentLight.position.set(x, y, z);
-    
-    // بروزرسانی helper ها
+// تابع جدید برای بروزرسانی helper های نور
+function updateLightHelpers() {
     lightHelpers.forEach(helper => {
         helper.update();
-    });
-    
-    // اگر نور اسپات است، helper آن باید به صورت جداگانه بروزرسانی شود
-    if (currentLight.type === 'SpotLight') {
-        lightHelpers.forEach(helper => {
-            if (helper instanceof THREE.SpotLightHelper) {
-                helper.update();
-            }
-        });
-    }
-    
-    // رندر مجدد صحنه برای نمایش تغییرات
-    renderer.render(scene, camera);
-}
-
-// تابع جدید برای بروزرسانی پارامترهای نور اسپات - با اصلاح برای اعمال فوری
-function updateSpotLightParameters() {
-    if (!currentLight || currentLight.type !== 'SpotLight') {
-        setupLights(); // اگر نور فعلی معتبر نیست، نور جدید ایجاد کن
-        return;
-    }
-    
-    const angle = Math.PI * parseFloat(document.getElementById('light-angle').value) / 180;
-    const penumbra = parseFloat(document.getElementById('light-penumbra').value);
-    
-    currentLight.angle = angle;
-    currentLight.penumbra = penumbra;
-    
-    // بروزرسانی helper های اسپات
-    lightHelpers.forEach(helper => {
-        if (helper instanceof THREE.SpotLightHelper) {
-            helper.update();
-        }
     });
     
     // رندر مجدد صحنه برای نمایش تغییرات
@@ -1074,11 +1100,27 @@ function onWindowResize() {
     renderer.setSize(width, height);
 }
 
-// رویداد DOMContentLoaded با فراخوانی setupScene
-window.addEventListener('DOMContentLoaded', function() {
-    console.log("صفحه بارگذاری شد. آماده‌سازی صحنه...");
-    setupScene();
-});
+// بهبود اجرای اولیه برنامه - اطمینان از اجرای تنظیمات اصلی
+function init() {
+    console.log("راه‌اندازی اولیه برنامه...");
+    
+    // تنظیم صحنه
+    setupDefaultLights();
+    
+    // تنظیم رویدادها
+    setupEventListeners();
+    
+    // نمایش اولیه دمای رنگ
+    updateTemperatureDisplay(parseInt(document.getElementById('light-temperature').value));
+    
+    // نمایش مکعب پیش‌فرض با تاخیر کوتاه
+    setTimeout(createDefaultCube, 1000);
+    
+    console.log("راه‌اندازی اولیه کامل شد");
+}
+
+// اطمینان از اجرای init پس از بارگذاری کامل صفحه
+window.addEventListener('DOMContentLoaded', init);
 
 // حلقه انیمیشن برای رندر مداوم - با اضافه کردن نمایش FPS
 let lastTime = 0;
