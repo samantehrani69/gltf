@@ -944,25 +944,45 @@ function createDefaultCube() {
 // فراخوانی تابع بارگذاری لیست فایل‌ها
 loadFileList();
 
-// اصلاح طریقه تنظیم ورودی‌های کاربر
+// اصلاح طریقه تنظیم ورودی‌های کاربر برای اعمال تغییرات در لحظه
 function setupEventListeners() {
-    // کنترل نوع نور
-    document.getElementById('light-type').addEventListener('change', setupLights);
+    // کنترل نوع نور - اعمال فوری
+    document.getElementById('light-type').addEventListener('change', function() {
+        setupLights();
+    });
     
-    // کنترل شدت و رنگ نور
-    document.getElementById('light-intensity').addEventListener('input', setupLights);
-    document.getElementById('light-color').addEventListener('input', setupLights);
+    // کنترل شدت و رنگ نور - اعمال فوری
+    document.getElementById('light-intensity').addEventListener('input', function() {
+        setupLights();
+    });
     
-    // کنترل‌های موقعیت نور - با تابع جداگانه برای اطمینان از بروزرسانی helper ها
-    document.getElementById('light-x').addEventListener('input', updateLightPosition);
-    document.getElementById('light-y').addEventListener('input', updateLightPosition);
-    document.getElementById('light-z').addEventListener('input', updateLightPosition);
+    document.getElementById('light-color').addEventListener('input', function() {
+        setupLights();
+    });
     
-    // کنترل‌های اسپات
-    document.getElementById('light-angle').addEventListener('input', updateSpotLightParameters);
-    document.getElementById('light-penumbra').addEventListener('input', updateSpotLightParameters);
+    // کنترل‌های موقعیت نور - اعمال فوری
+    document.getElementById('light-x').addEventListener('input', function() {
+        updateLightPosition();
+    });
     
-    // کنترل دمای رنگ
+    document.getElementById('light-y').addEventListener('input', function() {
+        updateLightPosition();
+    });
+    
+    document.getElementById('light-z').addEventListener('input', function() {
+        updateLightPosition();
+    });
+    
+    // کنترل‌های اسپات - اعمال فوری
+    document.getElementById('light-angle').addEventListener('input', function() {
+        updateSpotLightParameters();
+    });
+    
+    document.getElementById('light-penumbra').addEventListener('input', function() {
+        updateSpotLightParameters();
+    });
+    
+    // کنترل دمای رنگ - اعمال فوری
     document.getElementById('light-temperature').addEventListener('input', function(e) {
         const temperature = parseInt(e.target.value);
         const rgbColor = kelvinToRGB(temperature);
@@ -972,9 +992,10 @@ function setupEventListeners() {
     });
 }
 
-// تابع جدید برای بروزرسانی موقعیت نور
+// تابع جدید برای بروزرسانی موقعیت نور - با اصلاح برای اعمال فوری
 function updateLightPosition() {
     if (!currentLight || !['DirectionalLight', 'PointLight', 'SpotLight'].includes(currentLight.type)) {
+        setupLights(); // اگر نور فعلی معتبر نیست، نور جدید ایجاد کن
         return;
     }
     
@@ -997,11 +1018,15 @@ function updateLightPosition() {
             }
         });
     }
+    
+    // رندر مجدد صحنه برای نمایش تغییرات
+    renderer.render(scene, camera);
 }
 
-// تابع جدید برای بروزرسانی پارامترهای نور اسپات
+// تابع جدید برای بروزرسانی پارامترهای نور اسپات - با اصلاح برای اعمال فوری
 function updateSpotLightParameters() {
     if (!currentLight || currentLight.type !== 'SpotLight') {
+        setupLights(); // اگر نور فعلی معتبر نیست، نور جدید ایجاد کن
         return;
     }
     
@@ -1017,6 +1042,9 @@ function updateSpotLightParameters() {
             helper.update();
         }
     });
+    
+    // رندر مجدد صحنه برای نمایش تغییرات
+    renderer.render(scene, camera);
 }
 
 // ایجاد تابع setupScene که همه چیز را آماده می‌کند
