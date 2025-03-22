@@ -1,6 +1,10 @@
 // تنظیمات اولیه Three.js
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xeeeeee); // تغییر رنگ پس‌زمینه به خاکستری روشن
+
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(5, 5, 5); // تنظیم موقعیت اولیه دوربین
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(document.getElementById('scene').clientWidth, document.getElementById('scene').clientHeight);
 document.getElementById('scene').appendChild(renderer.domElement);
@@ -11,7 +15,11 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1;
+renderer.toneMappingExposure = 1.5; // افزایش میزان نوردهی
+
+// اضافه کردن یک grid helper برای راهنمایی بهتر
+const gridHelper = new THREE.GridHelper(20, 20, 0x888888, 0x444444);
+scene.add(gridHelper);
 
 // تعریف متغیرهای نور
 let currentLight;
@@ -34,8 +42,8 @@ function setupLights() {
     if (ambientLight) scene.remove(ambientLight);
     if (hemisphereLight) scene.remove(hemisphereLight);
     
-    // تنظیم نور محیطی ملایم برای همه حالت‌ها
-    ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+    // تنظیم نور محیطی قوی‌تر برای همه حالت‌ها
+    ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // افزایش شدت نور محیطی
     scene.add(ambientLight);
     
     // تنظیم نور بر اساس نوع انتخاب شده
@@ -212,24 +220,58 @@ function loadModel(file) {
                             console.log(`مدل ${file} با موفقیت بارگذاری شد.`, gltf);
                             currentModel = gltf.scene;
                             
-                            // مطمئن شویم مدل قبلی حذف شده است
-                            scene.children.forEach(child => {
-                                if (child.isObject3D && child !== currentModel && 
-                                    child !== ambientLight && child !== hemisphereLight && 
-                                    child !== currentLight) {
-                                    console.log("حذف شیء قبلی از صحنه", child);
-                                    scene.remove(child);
+                            // اطمینان از بارگذاری مدل
+                            console.log("اطلاعات مدل بارگذاری شده:", currentModel);
+                            
+                            // بررسی تعداد فرزندان مدل
+                            console.log("تعداد فرزندان مدل:", currentModel.children.length);
+                            console.log("فرزندان مدل:", currentModel.children);
+                            
+                            // مقیاس‌بندی مدل برای نمایش بهتر
+                            const box = new THREE.Box3().setFromObject(currentModel);
+                            const size = box.getSize(new THREE.Vector3());
+                            console.log("اندازه اصلی مدل:", size);
+                            
+                            // انتقال مدل به مرکز صحنه
+                            const center = box.getCenter(new THREE.Vector3());
+                            currentModel.position.x = -center.x;
+                            currentModel.position.y = -center.y;
+                            currentModel.position.z = -center.z;
+                            
+                            // افزودن مدل به صحنه
+                            scene.add(currentModel);
+                            console.log("مدل به صحنه اضافه شد");
+                            
+                            // نمایش مش‌ها روی مدل برای تشخیص بهتر
+                            currentModel.traverse(function(node) {
+                                if (node.isMesh) {
+                                    console.log("یافتن مش:", node.name);
+                                    // اضافه کردن یک wireframe برای نمایش بهتر
+                                    const wireframe = new THREE.WireframeGeometry(node.geometry);
+                                    const line = new THREE.LineSegments(wireframe);
+                                    line.material.color.setHex(0x000000);
+                                    line.material.opacity = 0.25;
+                                    line.material.transparent = true;
+                                    node.add(line);
+                                    
+                                    // اطمینان از نمایش صحیح مواد
+                                    if (node.material) {
+                                        if (Array.isArray(node.material)) {
+                                            node.material.forEach(mat => {
+                                                mat.side = THREE.DoubleSide; // نمایش هر دو طرف
+                                                mat.needsUpdate = true;
+                                            });
+                                        } else {
+                                            node.material.side = THREE.DoubleSide;
+                                            node.material.needsUpdate = true;
+                                        }
+                                    }
                                 }
                             });
                             
-                            optimizeModel(currentModel, file.toLowerCase().endsWith('.glb'));
-                            console.log("افزودن مدل به صحنه", currentModel);
-                            scene.add(currentModel);
-                            
-                            // تنظیم زاویه دوربین و موقعیت مدل
+                            // تنظیم دوربین برای نمایش کامل مدل
                             fitCameraToModel(currentModel);
-                            console.log("تعداد اشیاء در صحنه:", scene.children.length);
-                            console.log("اشیاء صحنه:", scene.children);
+                            
                             hideLoading();
                         }, 
                         // پیشرفت
@@ -491,37 +533,48 @@ function fitCameraToModel(model) {
     console.log("اندازه مدل:", size);
     console.log("مرکز مدل:", center);
     
-    // برای فایل‌های با مقیاس بزرگ یا کوچک، تنظیم منطقی‌تر
+    // تنظیم فاصله دوربین باتوجه به اندازه مدل
     const maxDim = Math.max(size.x, size.y, size.z);
+    
+    // اگر اندازه مدل صفر یا خیلی کوچک است
+    if (maxDim < 0.01) {
+        console.warn("مدل خیلی کوچک است! تنظیم مقیاس.");
+        model.scale.set(10, 10, 10); // افزایش مقیاس
+        fitCameraToModel(model); // فراخوانی دوباره با مقیاس جدید
+        return;
+    }
+    
+    // تنظیم فاصله دوربین بر اساس اندازه
     const fov = camera.fov * (Math.PI / 180);
-    let cameraDistance = Math.abs(maxDim / Math.sin(fov / 2));
+    let cameraDistance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.5; // ضریب 1.5 برای فاصله بیشتر
     
-    // حداقل و حداکثر فاصله دوربین
-    cameraDistance = Math.max(1.5, Math.min(cameraDistance, 100));
+    // حداقل و حداکثر فاصله
+    cameraDistance = Math.max(2, Math.min(cameraDistance, 100));
     
-    // انتقال مدل به مرکز صحنه
-    model.position.x = -center.x;
-    model.position.y = -center.y;
-    model.position.z = -center.z;
-    
-    console.log("موقعیت جدید مدل:", model.position);
+    console.log("فاصله محاسبه شده دوربین:", cameraDistance);
     
     // تنظیم موقعیت دوربین
-    const direction = new THREE.Vector3(1, 1, 1).normalize();
-    camera.position.copy(direction.multiplyScalar(cameraDistance));
+    camera.position.set(
+        cameraDistance * 0.8, 
+        cameraDistance * 0.6, 
+        cameraDistance * 0.8
+    );
     camera.lookAt(0, 0, 0);
     
-    console.log("موقعیت دوربین:", camera.position);
-    console.log("فاصله دوربین:", cameraDistance);
+    console.log("موقعیت جدید دوربین:", camera.position);
     
     // تنظیم کنترل‌ها
     controls.target.set(0, 0, 0);
-    controls.minDistance = cameraDistance * 0.1;
-    controls.maxDistance = cameraDistance * 5;
     controls.update();
     
-    // فعال‌سازی سایه‌ها برای رندرر
-    renderer.shadowMap.enabled = true;
+    // اضافه کردن یک نور نقطه‌ای در موقعیت دوربین برای روشنایی بهتر
+    const pointLight = new THREE.PointLight(0xffffff, 0.8);
+    pointLight.position.copy(camera.position);
+    scene.add(pointLight);
+    
+    // اضافه کردن helper برای نمایش موقعیت نور
+    const lightHelper = new THREE.PointLightHelper(pointLight, 0.5);
+    scene.add(lightHelper);
 }
 
 // اضافه کردن فایل آپلود شده به لیست
@@ -558,7 +611,7 @@ if (fileListLoading) {
     fileListLoading.remove();
 }
 
-// بارگذاری لیست فایل‌ها به صورت مستقیم - ساده‌سازی شده
+// اصلاح تابع loadFileList
 function loadFileList() {
     console.log('تنظیم مستقیم لیست فایل‌ها...');
     
@@ -582,7 +635,6 @@ function loadFileList() {
     fileListDiv.appendChild(helpDiv);
     
     // تنظیم مستقیم لیست فایل‌ها بدون بررسی وجود
-    // برای آزمایش، یک فایل مکعب ساده را اضافه می‌کنیم
     const files = ["model1.gltf", "model2.glb", "sample.gltf", "cube.glb"];
     
     console.log(`${files.length} فایل تنظیم شد:`, files);
@@ -598,7 +650,19 @@ function loadFileList() {
                 if (response.ok) {
                     p.style.color = 'green';
                     p.innerHTML = `✓ ${file} <span style="font-size: 0.8em">(موجود)</span>`;
-                    p.addEventListener('click', () => loadModel(file));
+                    p.addEventListener('click', () => {
+                        // حذف استایل انتخاب از همه موارد
+                        document.querySelectorAll('#file-list p').forEach(item => {
+                            item.style.backgroundColor = '';
+                            item.style.fontWeight = '';
+                        });
+                        
+                        // نمایش استایل انتخاب روی مورد فعلی
+                        p.style.backgroundColor = '#e6f7ff';
+                        p.style.fontWeight = 'bold';
+                        
+                        loadModel(file);
+                    });
                 } else {
                     p.style.color = 'red';
                     p.innerHTML = `✗ ${file} <span style="font-size: 0.8em">(موجود نیست)</span>`;
@@ -612,6 +676,24 @@ function loadFileList() {
         
         fileListDiv.appendChild(p);
     });
+    
+    // اضافه کردن دکمه برای بارگذاری مدل پیش‌فرض
+    const defaultModelBtn = document.createElement('button');
+    defaultModelBtn.textContent = 'نمایش مدل پیش‌فرض';
+    defaultModelBtn.style.marginTop = '15px';
+    defaultModelBtn.style.padding = '8px 12px';
+    defaultModelBtn.style.backgroundColor = '#1890ff';
+    defaultModelBtn.style.color = 'white';
+    defaultModelBtn.style.border = 'none';
+    defaultModelBtn.style.borderRadius = '4px';
+    defaultModelBtn.style.cursor = 'pointer';
+    defaultModelBtn.style.width = '100%';
+    
+    defaultModelBtn.addEventListener('click', () => {
+        createDefaultCube();
+    });
+    
+    fileListDiv.appendChild(defaultModelBtn);
 }
 
 // نمایش پیام "فایلی یافت نشد"
@@ -656,33 +738,35 @@ function showModelsFolderError() {
     fileListDiv.insertBefore(errorDiv, fileListDiv.firstChild);
 }
 
+// اضافه کردن تابع برای نمایش یک مکعب پیش‌فرض
+function createDefaultCube() {
+    if (currentModel) {
+        scene.remove(currentModel);
+    }
+    
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshStandardMaterial({ 
+        color: 0x3080ee,
+        metalness: 0.3,
+        roughness: 0.4
+    });
+    currentModel = new THREE.Mesh(geometry, material);
+    
+    scene.add(currentModel);
+    console.log("مکعب پیش‌فرض ایجاد شد");
+    
+    // تنظیم دوربین
+    camera.position.set(3, 3, 3);
+    camera.lookAt(0, 0, 0);
+    controls.target.set(0, 0, 0);
+    controls.update();
+}
+
 // فراخوانی تابع بارگذاری لیست فایل‌ها
 loadFileList();
 
 // حذف بررسی وجود پوشه models از DOMContentLoaded
-document.addEventListener('DOMContentLoaded', function() {
-    // حذف کد مربوط به آپلود فایل
-    /*
-    const fileInput = document.getElementById('model-upload');
-    
-    if (!fileInput) {
-        console.error('خطا: عنصر model-upload یافت نشد!');
-        alert('خطا در پیدا کردن دکمه آپلود. لطفاً صفحه را بارگذاری مجدد کنید.');
-    } else {
-        fileInput.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const lowerFileName = file.name.toLowerCase();
-                اگر lowerFileName.endsWith('.gltf') || lowerFileName.endsWith('.glb')) {
-                    loadUploadedModel(file);
-                } else {
-                    alert('لطفاً فقط فایل‌های با پسوند .gltf یا .glb انتخاب کنید.');
-                }
-            }
-        });
-    }
-    */
-    
+window.addEventListener('DOMContentLoaded', function() {
     // تنظیم اولیه نورها
     setupLights();
     
@@ -714,24 +798,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // نمایش اولیه دمای رنگ
     updateTemperatureDisplay(parseInt(document.getElementById('light-temperature').value));
     
-    // بررسی وجود فایل models/files.json به جای پوشه models
-    fetch('models/files.json')
-        .then(response => {
-            if (!response.ok) {
-                console.warn('خطا: فایل models/files.json یافت نشد.');
-                const fileListDiv = document.getElementById('file-list');
-                const errorItem = document.createElement('p');
-                errorItem.style.color = 'red';
-                errorItem.innerHTML = 'خطا: فایل models/files.json یافت نشد. لطفاً مطمئن شوید پوشه models در مسیر صحیح قرار دارد.';
-                fileListDiv.appendChild(errorItem);
-            }
-        })
-        .catch(err => {
-            console.warn('خطا در بررسی وجود فایل models/files.json:', err);
-        });
+    // بارگذاری لیست فایل‌ها
+    loadFileList();
     
-    // بررسی وجود پوشه models
-    // checkModelsFolder();
+    // ایجاد یک مکعب پیش‌فرض برای اطمینان از کارکرد صحنه
+    setTimeout(createDefaultCube, 500);
 });
 
 // حلقه انیمیشن برای رندر مداوم
