@@ -643,7 +643,7 @@ function loadFileList() {
                 return response.json();
             } else {
                 // اگر فایل files.json وجود نداشت، از آرایه پیش‌فرض استفاده می‌کنیم
-                return ["model1.gltf", "model2.glb", "sample.gltf", "cube.glb"];
+                return ["model1.gltf", "model2.glb"];
             }
         })
         .then(files => {
