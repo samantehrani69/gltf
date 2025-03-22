@@ -75,11 +75,15 @@
             
             // بارگذاری THREE.js
             loadScript(threeSources, 0, function() {
+                console.log("کتابخانه Three.js با موفقیت بارگذاری شد");
                 // پس از بارگذاری THREE.js، بارگذاری GLTFLoader
                 loadScript(gltfLoaderSources, 0, function() {
+                    console.log("کتابخانه GLTFLoader با موفقیت بارگذاری شد");
                     // پس از بارگذاری GLTFLoader، بارگذاری OrbitControls
                     loadScript(orbitControlsSources, 0, function() {
+                        console.log("کتابخانه OrbitControls با موفقیت بارگذاری شد");
                         // پس از بارگذاری همه کتابخانه‌ها، بارگذاری اسکریپت اصلی
+                        console.log("در حال بارگذاری اسکریپت اصلی...");
                         const scriptElement = document.createElement('script');
                         scriptElement.src = 'script.js';
                         document.body.appendChild(scriptElement);

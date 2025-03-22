@@ -184,8 +184,8 @@ function loadModel(file) {
     showLoading();
     console.log(`در حال بارگذاری مدل: ${file}`);
     
-    // مسیر مستقیم فایل
-    const modelPath = `models/${file}`;
+    // استفاده از URL نسبی صحیح با کمک window.location برای اطمینان از کار با دامنه صحیح
+    const modelPath = new URL(`models/${file}`, window.location.href).href;
     
     console.log(`تلاش برای بارگذاری مدل از مسیر: ${modelPath}`);
     
@@ -214,6 +214,8 @@ function loadModel(file) {
                     
                     // بارگذاری مدل
                     const loader = new THREE.GLTFLoader();
+                    
+                    // تلاش بارگذاری مدل با مسیر نسبی 
                     loader.load(modelPath, 
                         // موفقیت
                         (gltf) => {
@@ -611,7 +613,7 @@ if (fileListLoading) {
     fileListLoading.remove();
 }
 
-// اصلاح تابع loadFileList
+// اصلاح تابع loadFileList برای استفاده از مسیر نسبی صحیح
 function loadFileList() {
     console.log('تنظیم مستقیم لیست فایل‌ها...');
     
@@ -634,66 +636,85 @@ function loadFileList() {
     `;
     fileListDiv.appendChild(helpDiv);
     
-    // تنظیم مستقیم لیست فایل‌ها بدون بررسی وجود
-    const files = ["model1.gltf", "model2.glb", "sample.gltf", "cube.glb"];
-    
-    console.log(`${files.length} فایل تنظیم شد:`, files);
-    
-    files.forEach(file => {
-        const p = document.createElement('p');
-        p.textContent = file;
-        p.style.cursor = 'pointer';
-        
-        // بررسی وجود فایل
-        fetch(`models/${file}`, { method: 'HEAD' })
-            .then(response => {
-                if (response.ok) {
-                    p.style.color = 'green';
-                    p.innerHTML = `✓ ${file} <span style="font-size: 0.8em">(موجود)</span>`;
-                    p.addEventListener('click', () => {
-                        // حذف استایل انتخاب از همه موارد
-                        document.querySelectorAll('#file-list p').forEach(item => {
-                            item.style.backgroundColor = '';
-                            item.style.fontWeight = '';
-                        });
-                        
-                        // نمایش استایل انتخاب روی مورد فعلی
-                        p.style.backgroundColor = '#e6f7ff';
-                        p.style.fontWeight = 'bold';
-                        
-                        loadModel(file);
+    // سعی در خواندن فایل‌ها از files.json - اگر وجود داشت
+    fetch('models/files.json')
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                // اگر فایل files.json وجود نداشت، از آرایه پیش‌فرض استفاده می‌کنیم
+                return ["model1.gltf", "model2.glb", "sample.gltf", "cube.glb"];
+            }
+        })
+        .then(files => {
+            console.log(`${files.length} فایل تنظیم شد:`, files);
+            
+            // نمایش فایل‌ها در لیست
+            files.forEach(file => {
+                const p = document.createElement('p');
+                p.textContent = file;
+                p.style.cursor = 'pointer';
+                
+                // استفاده از مسیر نسبی برای بررسی وجود فایل
+                // استفاده از window.location.origin برای اطمینان از کار با دامنه صحیح
+                const modelUrl = new URL(`models/${file}`, window.location.href).href;
+                
+                console.log(`بررسی وجود فایل: ${modelUrl}`);
+                
+                fetch(modelUrl, { method: 'HEAD' })
+                    .then(response => {
+                        if (response.ok) {
+                            p.style.color = 'green';
+                            p.innerHTML = `✓ ${file} <span style="font-size: 0.8em">(موجود)</span>`;
+                            p.addEventListener('click', () => {
+                                // حذف استایل انتخاب از همه موارد
+                                document.querySelectorAll('#file-list p').forEach(item => {
+                                    item.style.backgroundColor = '';
+                                    item.style.fontWeight = '';
+                                });
+                                
+                                // نمایش استایل انتخاب روی مورد فعلی
+                                p.style.backgroundColor = '#e6f7ff';
+                                p.style.fontWeight = 'bold';
+                                
+                                loadModel(file);
+                            });
+                        } else {
+                            p.style.color = 'red';
+                            p.innerHTML = `✗ ${file} <span style="font-size: 0.8em">(موجود نیست)</span>`;
+                        }
+                    })
+                    .catch(error => {
+                        p.style.color = 'red';
+                        p.innerHTML = `✗ ${file} <span style="font-size: 0.8em">(خطا در بررسی)</span>`;
+                        console.error(`خطا در بررسی فایل ${file}:`, error);
                     });
-                } else {
-                    p.style.color = 'red';
-                    p.innerHTML = `✗ ${file} <span style="font-size: 0.8em">(موجود نیست)</span>`;
-                }
-            })
-            .catch(error => {
-                p.style.color = 'red';
-                p.innerHTML = `✗ ${file} <span style="font-size: 0.8em">(خطا در بررسی)</span>`;
-                console.error(`خطا در بررسی فایل ${file}:`, error);
+                
+                fileListDiv.appendChild(p);
             });
-        
-        fileListDiv.appendChild(p);
-    });
-    
-    // اضافه کردن دکمه برای بارگذاری مدل پیش‌فرض
-    const defaultModelBtn = document.createElement('button');
-    defaultModelBtn.textContent = 'نمایش مدل پیش‌فرض';
-    defaultModelBtn.style.marginTop = '15px';
-    defaultModelBtn.style.padding = '8px 12px';
-    defaultModelBtn.style.backgroundColor = '#1890ff';
-    defaultModelBtn.style.color = 'white';
-    defaultModelBtn.style.border = 'none';
-    defaultModelBtn.style.borderRadius = '4px';
-    defaultModelBtn.style.cursor = 'pointer';
-    defaultModelBtn.style.width = '100%';
-    
-    defaultModelBtn.addEventListener('click', () => {
-        createDefaultCube();
-    });
-    
-    fileListDiv.appendChild(defaultModelBtn);
+            
+            // اضافه کردن دکمه برای نمایش مدل پیش‌فرض
+            const defaultModelBtn = document.createElement('button');
+            defaultModelBtn.textContent = 'نمایش مدل پیش‌فرض';
+            defaultModelBtn.style.marginTop = '15px';
+            defaultModelBtn.style.padding = '8px 12px';
+            defaultModelBtn.style.backgroundColor = '#1890ff';
+            defaultModelBtn.style.color = 'white';
+            defaultModelBtn.style.border = 'none';
+            defaultModelBtn.style.borderRadius = '4px';
+            defaultModelBtn.style.cursor = 'pointer';
+            defaultModelBtn.style.width = '100%';
+            
+            defaultModelBtn.addEventListener('click', () => {
+                createDefaultCube();
+            });
+            
+            fileListDiv.appendChild(defaultModelBtn);
+        })
+        .catch(error => {
+            console.error('خطا در بارگذاری لیست فایل‌ها:', error);
+            showNoFilesMessage();
+        });
 }
 
 // نمایش پیام "فایلی یافت نشد"
